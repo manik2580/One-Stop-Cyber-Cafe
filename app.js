@@ -84,9 +84,9 @@ class ShopManager {
     this.currentDiscount = 0
     // </CHANGE>
     this.settings = {
-      shopName: "Sonar Bangla Pharmacy",
-      shopAddress: "Idelpur, Sadullahpur, Gaibandha",
-      shopPhone: "01707459702",
+      shopName: "One Stop Cyber Cafe",
+      shopAddress: "Joymontop Bazar, Singair, Manikganj",
+      shopPhone: "01305681653",
       lowStockThreshold: 10,
       currency: "৳",
       darkMode: "light",
@@ -247,9 +247,9 @@ class ShopManager {
     this.currentSale = []
     this.currentProcurement = []
     this.settings = {
-      shopName: "Sonar Bangla Pharmacy",
-      shopAddress: "Idelpur, Sadullahpur, Gaibandha",
-      shopPhone: "01707459702",
+      shopName: "One Stop Cyber Cafe",
+      shopAddress: "Joymontop Bazar, Singair, Manikganj",
+      shopPhone: "01305681653",
       lowStockThreshold: 10,
       currency: "৳",
       darkMode: "light",
