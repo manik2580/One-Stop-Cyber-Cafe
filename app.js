@@ -1982,53 +1982,79 @@ prepareRangeSalesPrintContent() {
     return saleDate >= fromDate && saleDate <= toDate
   })
 
-    const tbody = document.querySelector("#rangeSalesTable tbody")
-    tbody.innerHTML = ""
+  const tbody = document.querySelector("#rangeSalesTable tbody")
+  tbody.innerHTML = ""
 
-    let totalSales = 0
-    let totalProfit = 0
-    let totalDiscount = 0
+  let totalSales = 0
+  let totalProfit = 0
+  let totalDiscount = 0
 
-    rangeSales.forEach((sale) => {
-      const saleDiscount = sale.discount || 0
-      totalDiscount += saleDiscount
-      const saleGrossTotal = sale.items.reduce((sum, item) => sum + item.total, 0)
+  rangeSales.forEach((sale) => {
+    // ============ HANDLE SERVICE SALES ============
+    if (sale.type === "service") {
+      const saleAmount = sale.amount || 0
+      const profit = sale.profit || saleAmount
+      
+      totalSales += saleAmount
+      totalProfit += profit
 
-      sale.items.forEach((item) => {
-        const itemGrossTotal = item.total
-        const itemDiscountPortion = (itemGrossTotal / saleGrossTotal) * saleDiscount
-        const itemNetTotal = itemGrossTotal - itemDiscountPortion
-        const profit = (item.sellingPrice - item.purchasePrice) * item.quantity
-        const profitAfterDiscount = profit - itemDiscountPortion
-
-        totalSales += itemNetTotal
-        totalProfit += profitAfterDiscount
-
-        const row = tbody.insertRow()
-        row.innerHTML = `
-          <td>${new Date(sale.timestamp).toLocaleDateString()}</td>
-          <td>${new Date(sale.timestamp).toLocaleTimeString()}</td>
-          <td>${item.name}</td>
-          <td>${item.quantity}</td>
-          <td>${this.formatCurrency(item.purchasePrice)}</td>
-          <td>${this.formatCurrency(item.sellingPrice)}</td>
-          <td>${this.formatCurrency(profitAfterDiscount)}</td>
-          <td>${this.formatCurrency(itemNetTotal)}</td>
-          <td>${this.formatCurrency(itemDiscountPortion)}</td>
-        `
-      })
-    })
-
-    if (rangeSales.length === 0) {
       const row = tbody.insertRow()
-      row.innerHTML = '<td colspan="9" style="text-align: center;">No sales data for selected range</td>'
+      row.innerHTML = `
+        <td>${new Date(sale.date).toLocaleDateString()}</td>
+        <td>${new Date(sale.date).toLocaleTimeString()}</td>
+        <td><strong>[SERVICE]</strong> ${sale.serviceName} (${sale.customerName})</td>
+        <td>${sale.quantity} ${sale.serviceUnit}</td>
+        <td>${this.formatCurrency(0)}</td>
+        <td>${this.formatCurrency(saleAmount)}</td>
+        <td>${this.formatCurrency(profit)}</td>
+        <td>${this.formatCurrency(saleAmount)}</td>
+        <td>${this.formatCurrency(0)}</td>
+      `
+      return
     }
 
-    document.getElementById("rangeSalesTotal").textContent = this.formatCurrency(totalSales)
-    document.getElementById("rangeProfitTotal").textContent = this.formatCurrency(totalProfit)
-    document.getElementById("rangeDiscountTotal").textContent = this.formatCurrency(totalDiscount)
+    // ============ HANDLE PRODUCT SALES ============
+    if (!sale.items || sale.items.length === 0) return
 
-    showToast("Sales range report generated", "success")
+    const saleDiscount = sale.discount || 0
+    totalDiscount += saleDiscount
+    const saleGrossTotal = sale.items.reduce((sum, item) => sum + item.total, 0)
+
+    sale.items.forEach((item) => {
+      const itemGrossTotal = item.total
+      const itemDiscountPortion = saleGrossTotal > 0 ? (itemGrossTotal / saleGrossTotal) * saleDiscount : 0
+      const itemNetTotal = itemGrossTotal - itemDiscountPortion
+      const profit = (item.sellingPrice - item.purchasePrice) * item.quantity
+      const profitAfterDiscount = profit - itemDiscountPortion
+
+      totalSales += itemNetTotal
+      totalProfit += profitAfterDiscount
+
+      const row = tbody.insertRow()
+      row.innerHTML = `
+        <td>${new Date(sale.timestamp).toLocaleDateString()}</td>
+        <td>${new Date(sale.timestamp).toLocaleTimeString()}</td>
+        <td>${item.name}</td>
+        <td>${item.quantity}</td>
+        <td>${this.formatCurrency(item.purchasePrice)}</td>
+        <td>${this.formatCurrency(item.sellingPrice)}</td>
+        <td>${this.formatCurrency(profitAfterDiscount)}</td>
+        <td>${this.formatCurrency(itemNetTotal)}</td>
+        <td>${this.formatCurrency(itemDiscountPortion)}</td>
+      `
+    })
+  })
+
+  if (rangeSales.length === 0) {
+    const row = tbody.insertRow()
+    row.innerHTML = '<td colspan="9" style="text-align: center;">No sales data for selected range</td>'
+  }
+
+  document.getElementById("rangeSalesTotal").textContent = this.formatCurrency(totalSales)
+  document.getElementById("rangeProfitTotal").textContent = this.formatCurrency(totalProfit)
+  document.getElementById("rangeDiscountTotal").textContent = this.formatCurrency(totalDiscount)
+
+  showToast("Sales range report generated", "success")
   }
 
   generateProcurementRangeReport() {
@@ -3167,14 +3193,24 @@ prepareRangeSalesPrintContent() {
       purchasePrice: 0,
       barcode: null,
       date: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // Added for date filtering compatibility
       time: new Date().toLocaleTimeString(),
       profit: Number(amountInput.value),
     }
 
     this.sales.push(serviceSale)
     this.saveData()
-    this.updateDashboard()
+    
+    // ============ CRITICAL FIX: Update all affected sections ============
+    this.updateDashboard() // Updates dashboard cards and monthly totals
+    
+    // Trigger statements section refresh if visible
+    const statementsTab = document.querySelector("[data-tab='daily-sales']")
+    if (statementsTab && statementsTab.classList.contains("active")) {
+      this.loadStatements() // Reload statements to show new service sale
+    }
 
+    // Clear form inputs
     serviceTypeSelect.value = ""
     custNameInput.value = ""
     amountInput.value = ""
