@@ -106,6 +106,7 @@ class ShopManager {
     this.loadStatements()
     this.initializeDarkMode()
     this.initKeyboardShortcuts()
+    this.initCostManagementEventListeners()
 
     setInterval(() => this.updateDateTime(), 1000)
   }
@@ -670,6 +671,10 @@ class ShopManager {
       this.loadInventory()
     } else if (sectionId === "settings") {
       this.loadSettingsValues()
+    } else if (sectionId === "cost-management") {
+      this.loadCostManagement()
+    } else if (sectionId === "profit-loss") {
+      this.generateProfitLossReport()
     }
   }
 
@@ -3265,6 +3270,316 @@ prepareRangeSalesPrintContent() {
     if (modal) {
       modal.style.display = "none"
     }
+  }
+
+  // ========== COST MANAGEMENT METHODS ==========
+  initCostManagementEventListeners() {
+    const addExpenseBtn = document.getElementById("addExpenseBtn")
+    const generateExpenseReportBtn = document.getElementById("generateExpenseReport")
+    const downloadStatementBtn = document.getElementById("downloadExpenseStatement")
+    const generateProfitLossBtn = document.getElementById("generateProfitLossReport")
+    const expenseDateInput = document.getElementById("expenseDate")
+
+    // Set today's date as default
+    if (expenseDateInput) {
+      const today = new Date().toISOString().split("T")[0]
+      expenseDateInput.value = today
+    }
+
+    if (addExpenseBtn) {
+      addExpenseBtn.addEventListener("click", () => {
+        this.addExpense()
+      })
+    }
+
+    if (generateExpenseReportBtn) {
+      generateExpenseReportBtn.addEventListener("click", () => {
+        this.generateExpenseReport()
+      })
+    }
+
+    if (downloadStatementBtn) {
+      downloadStatementBtn.addEventListener("click", () => {
+        this.downloadExpenseStatement()
+      })
+    }
+
+    if (generateProfitLossBtn) {
+      generateProfitLossBtn.addEventListener("click", () => {
+        this.generateProfitLossReport()
+      })
+    }
+
+    // Set default dates for filters
+    const today = new Date().toISOString().split("T")[0]
+    const expenseStartDate = document.getElementById("expenseStartDate")
+    const expenseEndDate = document.getElementById("expenseEndDate")
+    const plStartDate = document.getElementById("plStartDate")
+    const plEndDate = document.getElementById("plEndDate")
+
+    if (expenseStartDate && expenseEndDate) {
+      expenseStartDate.value = today
+      expenseEndDate.value = today
+    }
+
+    if (plStartDate && plEndDate) {
+      plStartDate.value = today
+      plEndDate.value = today
+    }
+
+    // Delete expense button listeners
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("delete-expense-btn")) {
+        const expenseId = e.target.dataset.expenseId
+        this.deleteExpense(expenseId)
+      }
+    })
+  }
+
+  loadCostManagement() {
+    this.loadExpenses()
+    this.generateExpenseReport()
+    this.initCostManagementEventListeners()
+  }
+
+  loadExpenses() {
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    this.renderExpenseTable(expenses)
+  }
+
+  addExpense() {
+    const dateInput = document.getElementById("expenseDate")
+    const descriptionInput = document.getElementById("expenseDescription")
+    const amountInput = document.getElementById("expenseAmount")
+
+    if (!dateInput.value) {
+      showToast("Please select a date", "error")
+      dateInput.focus()
+      return
+    }
+
+    if (!descriptionInput.value.trim()) {
+      showToast("Please enter an expense description", "error")
+      descriptionInput.focus()
+      return
+    }
+
+    if (!amountInput.value || Number(amountInput.value) <= 0) {
+      showToast("Please enter a valid amount", "error")
+      amountInput.focus()
+      return
+    }
+
+    const expense = {
+      id: Date.now().toString(),
+      date: dateInput.value,
+      description: descriptionInput.value.trim(),
+      amount: Number(amountInput.value),
+      timestamp: new Date().toISOString(),
+    }
+
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    expenses.push(expense)
+    localStorage.setItem("cyber_cafe_expenses", JSON.stringify(expenses))
+
+    // Clear form
+    dateInput.value = new Date().toISOString().split("T")[0]
+    descriptionInput.value = ""
+    amountInput.value = ""
+
+    this.loadExpenses()
+    showToast("Expense added successfully!", "success")
+  }
+
+  deleteExpense(expenseId) {
+    const confirmation = prompt('Type "CONFIRM" to delete this expense:')
+    if (confirmation !== "CONFIRM") {
+      showToast("Invalid input! Data not deleted.", "error")
+      return
+    }
+
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    const filteredExpenses = expenses.filter((e) => e.id !== expenseId)
+    localStorage.setItem("cyber_cafe_expenses", JSON.stringify(filteredExpenses))
+
+    this.loadExpenses()
+    showToast("Expense deleted successfully!", "success")
+  }
+
+  renderExpenseTable(expenses) {
+    const tbody = document.querySelector("#expenseTable tbody")
+    if (!tbody) return
+
+    if (expenses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No expenses recorded</td></tr>'
+      document.getElementById("totalExpenses").textContent = "0.00"
+      return
+    }
+
+    let totalExpenses = 0
+    tbody.innerHTML = expenses
+      .map((expense) => {
+        totalExpenses += expense.amount
+        return `
+          <tr>
+            <td>${new Date(expense.date).toLocaleDateString()}</td>
+            <td>${expense.description}</td>
+            <td>${this.formatCurrency(expense.amount)}</td>
+            <td>
+              <button class="btn btn-danger btn-sm delete-expense-btn" data-expense-id="${expense.id}">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </td>
+          </tr>
+        `
+      })
+      .join("")
+
+    document.getElementById("totalExpenses").textContent = this.formatCurrency(totalExpenses)
+  }
+
+  generateExpenseReport() {
+    const startDate = document.getElementById("expenseStartDate")?.value
+    const endDate = document.getElementById("expenseEndDate")?.value
+
+    if (!startDate || !endDate) return
+
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    const filteredExpenses = expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      return expenseDate >= start && expenseDate <= end
+    })
+
+    this.renderExpenseTable(filteredExpenses)
+  }
+
+  downloadExpenseStatement() {
+    const startDate = document.getElementById("expenseStartDate")?.value
+    const endDate = document.getElementById("expenseEndDate")?.value
+
+    if (!startDate || !endDate) {
+      showToast("Please select date range", "error")
+      return
+    }
+
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    const filteredExpenses = expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      return expenseDate >= start && expenseDate <= end
+    })
+
+    if (filteredExpenses.length === 0) {
+      showToast("No data to export", "warning")
+      return
+    }
+
+    // Check if XLSX library is loaded
+    if (typeof window.XLSX === "undefined") {
+      showToast("Excel export library not loaded. Please refresh the page.", "error")
+      console.error("XLSX library is not loaded")
+      return
+    }
+
+    const data = filteredExpenses.map((expense) => ({
+      Date: new Date(expense.date).toLocaleDateString(),
+      Description: expense.description,
+      Amount: expense.amount,
+    }))
+
+    const worksheet = window.XLSX.utils.json_to_sheet(data)
+    const workbook = window.XLSX.utils.book_new()
+    window.XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses")
+
+    window.XLSX.writeFile(workbook, `Expense_Statement_${startDate}_to_${endDate}.xlsx`)
+    showToast("Statement downloaded successfully!", "success")
+  }
+
+  generateProfitLossReport() {
+    const startDate = document.getElementById("plStartDate")?.value
+    const endDate = document.getElementById("plEndDate")?.value
+
+    if (!startDate || !endDate) {
+      showToast("Please select date range", "error")
+      return
+    }
+
+    // Calculate income from sales
+    const salesIncome = this.sales
+      .filter((sale) => {
+        const saleDate = new Date(sale.date || sale.timestamp)
+        const start = new Date(startDate)
+        const end = new Date(endDate)
+        return saleDate >= start && saleDate <= end
+      })
+      .reduce((sum, sale) => sum + (sale.finalAmount || sale.grandTotal || 0), 0)
+
+    // Calculate income from services
+    const servicesIncome = this.sales
+      .filter((sale) => {
+        return (
+          sale.type === "service" &&
+          new Date(sale.date || sale.timestamp) >= new Date(startDate) &&
+          new Date(sale.date || sale.timestamp) <= new Date(endDate)
+        )
+      })
+      .reduce((sum, sale) => sum + sale.amount, 0)
+
+    // Calculate total expenses
+    const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
+    const totalExpenses = expenses
+      .filter((expense) => {
+        const expenseDate = new Date(expense.date)
+        const start = new Date(startDate)
+        const end = new Date(endDate)
+        return expenseDate >= start && expenseDate <= end
+      })
+      .reduce((sum, expense) => sum + expense.amount, 0)
+
+    const totalIncome = salesIncome + servicesIncome
+    const netProfit = totalIncome - totalExpenses
+
+    // Update dashboard cards
+    document.getElementById("plTotalIncome").textContent = this.formatCurrency(totalIncome)
+    document.getElementById("plTotalExpenses").textContent = this.formatCurrency(totalExpenses)
+    document.getElementById("plNetProfit").textContent = this.formatCurrency(netProfit)
+    document.getElementById("plSalesIncome").textContent = this.formatCurrency(salesIncome)
+    document.getElementById("plServicesIncome").textContent = this.formatCurrency(servicesIncome)
+
+    // Render expense breakdown
+    this.renderExpenseBreakdown(
+      expenses.filter((expense) => {
+        const expenseDate = new Date(expense.date)
+        const start = new Date(startDate)
+        const end = new Date(endDate)
+        return expenseDate >= start && expenseDate <= end
+      })
+    )
+  }
+
+  renderExpenseBreakdown(expenses) {
+    const tbody = document.querySelector("#expenseBreakdownTable tbody")
+    if (!tbody) return
+
+    if (expenses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align: center;">No expenses in this period</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = expenses
+      .map(
+        (expense) =>
+          `
+          <tr>
+            <td>${expense.description}</td>
+            <td>${this.formatCurrency(expense.amount)}</td>
+          </tr>
+        `
+      )
+      .join("")
   }
 }
 

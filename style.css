@@ -2142,7 +2142,213 @@ tr:hover {
   margin-bottom: 0.5rem;
 }
 
+/* ========== COST MANAGEMENT STYLES ========== */
+.cost-management-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.expense-form-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border-primary);
+  transition: background-color 0.3s ease;
+}
+
+.expense-form-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 1.5rem;
+}
+
+.expense-table-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border-primary);
+  transition: background-color 0.3s ease;
+}
+
+.expense-table-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 1.5rem;
+}
+
+.date-filter-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.date-filter-section .form-group {
+  margin-bottom: 0;
+}
+
+.date-filter-section .form-group label {
+  font-size: 0.9rem;
+}
+
+.date-filter-section .btn {
+  align-self: flex-end;
+  margin-bottom: 0;
+}
+
+#expenseTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px var(--shadow);
+  transition: background-color 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+#expenseTable th {
+  background: var(--bg-tertiary);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+}
+
+#expenseTable td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+#expenseTable tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.expense-total-section {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: right;
+}
+
+.expense-total-section .total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ========== PROFIT/LOSS DASHBOARD STYLES ========== */
+.profit-loss-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-primary);
+}
+
+.profit-loss-filters .form-group {
+  margin-bottom: 0;
+}
+
+.profit-loss-filters .btn {
+  align-self: flex-end;
+}
+
+.profit-loss-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.pl-detail-card {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border-primary);
+  transition: background-color 0.3s ease;
+}
+
+.pl-detail-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 1rem;
+}
+
+.pl-detail-card .detail-row-enhanced {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.pl-detail-card .detail-row-enhanced:last-child {
+  border-bottom: none;
+}
+
+#expenseBreakdownTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+}
+
+#expenseBreakdownTable th {
+  background: var(--bg-tertiary);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+}
+
+#expenseBreakdownTable td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+#expenseBreakdownTable tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
 @media (max-width: 768px) {
+  .cost-management-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .profit-loss-filters {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .date-filter-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .profit-loss-details {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
   .services-container {
     grid-template-columns: 1fr;
     gap: 1.5rem;

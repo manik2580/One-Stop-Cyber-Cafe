@@ -86,6 +86,14 @@
                     <i class="fas fa-print"></i>
                     <span>Services</span>
                 </li>
+                <li class="nav-item" data-section="cost-management">
+                    <i class="fas fa-receipt"></i>
+                    <span>Cost Management</span>
+                </li>
+                <li class="nav-item" data-section="profit-loss">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Profit/Loss</span>
+                </li>
                 <li class="nav-item" data-section="settings">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
@@ -694,6 +702,151 @@
                 </div>
             </div>
 
+            <section id="cost-management" class="section">
+                <div class="section-header">
+                    <h1>Cost Management</h1>
+                    <p>Track and manage business expenses</p>
+                </div>
+                <div class="cost-management-container">
+                    <div class="expense-form-section">
+                        <h3>Record Expense</h3>
+                        <div class="form-group">
+                            <label for="expenseDate">Date <span style="color: var(--danger);">*</span></label>
+                            <input type="date" id="expenseDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDescription">Expense Description <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="expenseDescription" class="form-control" placeholder="e.g., Office Rent, Electricity Bill...">
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseAmount">Amount <span style="color: var(--danger);">*</span></label>
+                            <div class="price-input-container">
+                                <span class="currency-symbol"></span>
+                                <input type="number" id="expenseAmount" class="form-control" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <button id="addExpenseBtn" class="btn btn-primary btn-large">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </button>
+                    </div>
+
+                    <div class="expense-table-section">
+                        <h3>Expense History</h3>
+                        <div class="date-filter-section">
+                            <div class="form-group">
+                                <label for="expenseStartDate">Start Date:</label>
+                                <input type="date" id="expenseStartDate" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseEndDate">End Date:</label>
+                                <input type="date" id="expenseEndDate" class="form-control">
+                            </div>
+                            <button id="generateExpenseReport" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <button id="downloadExpenseStatement" class="btn btn-secondary">
+                                <i class="fas fa-download"></i> Download Excel
+                            </button>
+                        </div>
+                        
+                        <table id="expenseTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="expense-total-section">
+                            <div class="total-row">
+                                <span>Total Expenses:</span>
+                                <span id="totalExpenses" class="total-amount">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="profit-loss" class="section">
+                <div class="section-header">
+                    <h1>Profit/Loss Dashboard</h1>
+                    <p>View your business financial summary</p>
+                </div>
+                <div class="profit-loss-filters">
+                    <div class="form-group">
+                        <label for="plStartDate">Start Date:</label>
+                        <input type="date" id="plStartDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="plEndDate">End Date:</label>
+                        <input type="date" id="plEndDate" class="form-control">
+                    </div>
+                    <button id="generateProfitLossReport" class="btn btn-primary">
+                        <i class="fas fa-sync"></i> Generate Report
+                    </button>
+                </div>
+
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Income</h3>
+                            <p class="card-value" id="plTotalIncome">0.00</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Expenses</h3>
+                            <p class="card-value" id="plTotalExpenses">0.00</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Net Profit</h3>
+                            <p class="card-value" id="plNetProfit">0.00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profit-loss-details">
+                    <div class="pl-detail-card">
+                        <h3>Income Breakdown</h3>
+                        <div class="detail-row-enhanced">
+                            <span class="detail-label">Sales Income:</span>
+                            <span class="detail-value" id="plSalesIncome">0.00</span>
+                        </div>
+                        <div class="detail-row-enhanced">
+                            <span class="detail-label">Services Income:</span>
+                            <span class="detail-value" id="plServicesIncome">0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="pl-detail-card">
+                        <h3>Expense Breakdown</h3>
+                        <table id="expenseBreakdownTable">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <section id="settings" class="section">
                 <div class="section-header">
                     <h1>Settings</h1>
@@ -906,6 +1059,7 @@
 
     <div id="toast-container"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
