@@ -519,6 +519,28 @@ class ShopManager {
       this.generateProcurementRangeReport()
     })
 
+    // FIX #2: Sync Statement date changes to Profit/Loss section
+    const salesFromDate = document.getElementById("salesFromDate")
+    const salesToDate = document.getElementById("salesToDate")
+
+    if (salesFromDate) {
+      salesFromDate.addEventListener("change", () => {
+        const plStartDate = document.getElementById("plStartDate")
+        if (plStartDate) {
+          plStartDate.value = salesFromDate.value
+        }
+      })
+    }
+
+    if (salesToDate) {
+      salesToDate.addEventListener("change", () => {
+        const plEndDate = document.getElementById("plEndDate")
+        if (plEndDate) {
+          plEndDate.value = salesToDate.value
+        }
+      })
+    }
+
     this.initPrintExportListeners()
   }
 
@@ -3298,10 +3320,15 @@ prepareRangeSalesPrintContent() {
       })
     }
 
+    // FIX #1: Use event delegation with event.stopImmediatePropagation() to prevent multiple downloads
     if (downloadStatementBtn) {
-      downloadStatementBtn.addEventListener("click", () => {
+      // Remove any existing listeners to prevent duplication
+      downloadStatementBtn.removeEventListener("click", this.boundDownloadHandler)
+      // Create bound handler to maintain context
+      this.boundDownloadHandler = () => {
         this.downloadExpenseStatement()
-      })
+      }
+      downloadStatementBtn.addEventListener("click", this.boundDownloadHandler)
     }
 
     if (generateProfitLossBtn) {
@@ -3327,13 +3354,18 @@ prepareRangeSalesPrintContent() {
       plEndDate.value = today
     }
 
-    // Delete expense button listeners
-    document.addEventListener("click", (e) => {
-      if (e.target.classList.contains("delete-expense-btn")) {
-        const expenseId = e.target.dataset.expenseId
-        this.deleteExpense(expenseId)
-      }
-    })
+    // Delete expense button listeners using event delegation
+    // Only attach once using a flag to prevent duplicate listeners
+    if (!this.deleteExpenseListenerAttached) {
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete-expense-btn")) {
+          e.stopPropagation()
+          const expenseId = e.target.dataset.expenseId
+          this.deleteExpense(expenseId)
+        }
+      })
+      this.deleteExpenseListenerAttached = true
+    }
   }
 
   loadCostManagement() {
@@ -3456,6 +3488,15 @@ prepareRangeSalesPrintContent() {
   }
 
   downloadExpenseStatement() {
+    // FIX #1: Prevent multiple rapid clicks and event bubbling
+    const downloadBtn = document.getElementById("downloadExpenseStatement")
+    if (downloadBtn) {
+      downloadBtn.disabled = true
+      setTimeout(() => {
+        downloadBtn.disabled = false
+      }, 2000)
+    }
+
     const startDate = document.getElementById("expenseStartDate")?.value
     const endDate = document.getElementById("expenseEndDate")?.value
 
@@ -3477,87 +3518,187 @@ prepareRangeSalesPrintContent() {
       return
     }
 
-    // Check if XLSX library is loaded
-    if (typeof window.XLSX === "undefined") {
-      showToast("Excel export library not loaded. Please refresh the page.", "error")
-      console.error("XLSX library is not loaded")
+    // Check if html2pdf library is loaded
+    if (typeof window.html2pdf === "undefined") {
+      showToast("PDF export library not loaded. Please refresh the page.", "error")
+      console.error("html2pdf library is not loaded")
       return
     }
 
-    const data = filteredExpenses.map((expense) => ({
-      Date: new Date(expense.date).toLocaleDateString(),
-      Description: expense.description,
-      Amount: expense.amount,
-    }))
+    // Create HTML content for PDF
+    let totalAmount = 0
+    const tableRows = filteredExpenses
+      .map((expense) => {
+        totalAmount += expense.amount
+        return `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">${new Date(expense.date).toLocaleDateString()}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">${expense.description}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${this.formatCurrency(expense.amount)}</td>
+          </tr>
+        `
+      })
+      .join("")
 
-    const worksheet = window.XLSX.utils.json_to_sheet(data)
-    const workbook = window.XLSX.utils.book_new()
-    window.XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses")
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="text-align: center; color: #2563eb; margin-bottom: 10px;">Expense Report</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">
+          ${this.settings.shopName}
+        </p>
+        <p style="color: #666; margin: 5px 0;">
+          <strong>Report Period:</strong> ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}
+        </p>
+        <p style="color: #666; margin: 5px 0; margin-bottom: 20px;">
+          <strong>Generated on:</strong> ${new Date().toLocaleString()}
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background-color: #f0f4f8;">
+              <th style="padding: 12px; text-align: left; border-bottom: 2px solid #2563eb; font-weight: 600;">Date</th>
+              <th style="padding: 12px; text-align: left; border-bottom: 2px solid #2563eb; font-weight: 600;">Description</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 2px solid #2563eb; font-weight: 600;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+            <tr style="background-color: #f0f4f8; font-weight: 600;">
+              <td colspan="2" style="padding: 12px; text-align: right;">Total Expenses:</td>
+              <td style="padding: 12px; text-align: right; border-top: 2px solid #2563eb;">${this.formatCurrency(totalAmount)}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">
+          This is a computer-generated report from ${this.settings.shopName}
+        </p>
+      </div>
+    `
 
-    window.XLSX.writeFile(workbook, `Expense_Statement_${startDate}_to_${endDate}.xlsx`)
-    showToast("Statement downloaded successfully!", "success")
+    const element = document.createElement("div")
+    element.innerHTML = htmlContent
+
+    const options = {
+      margin: 10,
+      filename: `Expense_Statement_${startDate}_to_${endDate}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+    }
+
+    window.html2pdf().set(options).from(element).save()
+    showToast("PDF downloaded successfully!", "success")
   }
 
   generateProfitLossReport() {
-    const startDate = document.getElementById("plStartDate")?.value
-    const endDate = document.getElementById("plEndDate")?.value
+    // FIX #2: Sync with Statement section date range if P/L dates are not set
+    const plStartDateEl = document.getElementById("plStartDate")
+    const plEndDateEl = document.getElementById("plEndDate")
+    const statementStartDateEl = document.getElementById("salesFromDate")
+    const statementEndDateEl = document.getElementById("salesToDate")
+
+    let startDate = plStartDateEl?.value
+    let endDate = plEndDateEl?.value
+
+    // If P/L dates are not set, try to use Statement dates
+    if (!startDate && statementStartDateEl?.value) {
+      startDate = statementStartDateEl.value
+      if (plStartDateEl) plStartDateEl.value = startDate
+    }
+
+    if (!endDate && statementEndDateEl?.value) {
+      endDate = statementEndDateEl.value
+      if (plEndDateEl) plEndDateEl.value = endDate
+    }
 
     if (!startDate || !endDate) {
       showToast("Please select date range", "error")
       return
     }
 
-    // Calculate income from sales
-    const salesIncome = this.sales
-      .filter((sale) => {
-        const saleDate = new Date(sale.date || sale.timestamp)
-        const start = new Date(startDate)
-        const end = new Date(endDate)
-        return saleDate >= start && saleDate <= end
-      })
-      .reduce((sum, sale) => sum + (sale.finalAmount || sale.grandTotal || 0), 0)
+    // Parse dates for proper comparison using date string parsing
+    // This ensures exact date matching without timezone issues
+    const start = new Date(startDate + "T00:00:00")
+    const end = new Date(endDate + "T23:59:59")
 
-    // Calculate income from services
-    const servicesIncome = this.sales
-      .filter((sale) => {
-        return (
-          sale.type === "service" &&
-          new Date(sale.date || sale.timestamp) >= new Date(startDate) &&
-          new Date(sale.date || sale.timestamp) <= new Date(endDate)
-        )
-      })
-      .reduce((sum, sale) => sum + sale.amount, 0)
+    let salesIncome = 0
+    let servicesIncome = 0
+
+    // Filter sales by date range and separate product sales from service sales
+    this.sales.forEach((sale) => {
+      const saleTimestamp = sale.date || sale.timestamp
+      const saleDate = new Date(saleTimestamp)
+      
+      // Normalize to date only for comparison
+      const saleDateOnly = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate())
+      const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+      const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+      
+      if (saleDateOnly >= startDateOnly && saleDateOnly <= endDateOnly) {
+        if (sale.type === "service") {
+          // Service income
+          servicesIncome += sale.amount || 0
+        } else {
+          // Product sales income (use finalTotal if available, otherwise calculate from items)
+          if (sale.finalTotal) {
+            salesIncome += sale.finalTotal
+          } else if (sale.finalAmount) {
+            salesIncome += sale.finalAmount
+          } else if (sale.items && sale.items.length > 0) {
+            const itemsTotal = sale.items.reduce((sum, item) => sum + (item.total || 0), 0)
+            const discountAmount = sale.discount || 0
+            salesIncome += itemsTotal - discountAmount
+          } else {
+            salesIncome += sale.grandTotal || 0
+          }
+        }
+      }
+    })
 
     // Calculate total expenses
     const expenses = JSON.parse(localStorage.getItem("cyber_cafe_expenses") || "[]")
     const totalExpenses = expenses
       .filter((expense) => {
         const expenseDate = new Date(expense.date)
-        const start = new Date(startDate)
-        const end = new Date(endDate)
-        return expenseDate >= start && expenseDate <= end
+        // Normalize to date only for comparison
+        const expenseDateOnly = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+        const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+        const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+        
+        return expenseDateOnly >= startDateOnly && expenseDateOnly <= endDateOnly
       })
       .reduce((sum, expense) => sum + expense.amount, 0)
 
     const totalIncome = salesIncome + servicesIncome
     const netProfit = totalIncome - totalExpenses
 
-    // Update dashboard cards
-    document.getElementById("plTotalIncome").textContent = this.formatCurrency(totalIncome)
-    document.getElementById("plTotalExpenses").textContent = this.formatCurrency(totalExpenses)
-    document.getElementById("plNetProfit").textContent = this.formatCurrency(netProfit)
-    document.getElementById("plSalesIncome").textContent = this.formatCurrency(salesIncome)
-    document.getElementById("plServicesIncome").textContent = this.formatCurrency(servicesIncome)
+    // Update dashboard cards with proper formatting
+    const plTotalIncomeEl = document.getElementById("plTotalIncome")
+    const plTotalExpensesEl = document.getElementById("plTotalExpenses")
+    const plNetProfitEl = document.getElementById("plNetProfit")
+    const plSalesIncomeEl = document.getElementById("plSalesIncome")
+    const plServicesIncomeEl = document.getElementById("plServicesIncome")
+
+    if (plTotalIncomeEl) plTotalIncomeEl.textContent = this.formatCurrency(totalIncome)
+    if (plTotalExpensesEl) plTotalExpensesEl.textContent = this.formatCurrency(totalExpenses)
+    if (plNetProfitEl) plNetProfitEl.textContent = this.formatCurrency(netProfit)
+    if (plSalesIncomeEl) plSalesIncomeEl.textContent = this.formatCurrency(salesIncome)
+    if (plServicesIncomeEl) plServicesIncomeEl.textContent = this.formatCurrency(servicesIncome)
 
     // Render expense breakdown
-    this.renderExpenseBreakdown(
-      expenses.filter((expense) => {
-        const expenseDate = new Date(expense.date)
-        const start = new Date(startDate)
-        const end = new Date(endDate)
-        return expenseDate >= start && expenseDate <= end
-      })
-    )
+    const filteredExpenses = expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date)
+      // Normalize to date only for comparison
+      const expenseDateOnly = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+      const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+      const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+      
+      return expenseDateOnly >= startDateOnly && expenseDateOnly <= endDateOnly
+    })
+    this.renderExpenseBreakdown(filteredExpenses)
+
+    showToast("Profit/Loss report generated successfully", "success")
   }
 
   renderExpenseBreakdown(expenses) {
