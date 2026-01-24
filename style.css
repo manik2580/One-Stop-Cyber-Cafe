@@ -146,7 +146,7 @@ body {
 }
 
 .sidebar {
-  width: 260px;
+  width: 250px;
   background: var(--bg-secondary);
   box-shadow: 2px 0 4px var(--shadow);
   padding: 1.5rem 0;
@@ -2372,4 +2372,83 @@ tr:hover {
   .service-list table {
     font-size: 0.85rem;
   }
+}
+
+/* ========== CUSTOMER MANAGEMENT ========== */
+#customerListView,
+#customerLedgerView {
+  animation: fadeIn 0.3s ease-out;
+}
+
+#customersTable,
+#ledgerTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+#customersTable thead,
+#ledgerTable thead {
+  background: var(--bg-tertiary);
+}
+
+#customersTable th,
+#ledgerTable th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+}
+
+#customersTable td,
+#ledgerTable td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+#customersTable tbody tr:hover,
+#ledgerTable tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.customer-balance-positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.customer-balance-negative {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+#customerSearch {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-primary);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+#customerSearch:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ledger-debit {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.ledger-credit {
+  color: var(--success);
+  font-weight: 600;
 }

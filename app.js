@@ -88,7 +88,7 @@ class ShopManager {
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
       shopPhone: "01305681653",
       lowStockThreshold: 10,
-      currency: "৳",
+      currency: " ",
       darkMode: "light",
     }
 
@@ -252,7 +252,7 @@ class ShopManager {
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
       shopPhone: "01305681653",
       lowStockThreshold: 10,
-      currency: "৳",
+      currency: " ",
       darkMode: "light",
     }
 
@@ -3724,4 +3724,612 @@ prepareRangeSalesPrintContent() {
   }
 }
 
+// ========== CUSTOMER MANAGEMENT EXTENSION ==========
+ShopManager.prototype.initCustomerManagement = function() {
+  this.customers = []
+  this.customerLedgers = {} // { customerId: [transactions] }
+  this.currentViewingCustomerId = null
+  this.editingCustomerId = null
+  this.loadCustomers()
+  this.initCustomerEventListeners()
+}
+
+ShopManager.prototype.loadCustomers = function() {
+  const savedCustomers = localStorage.getItem("shop_customers")
+  const savedLedgers = localStorage.getItem("shop_customer_ledgers")
+  
+  if (savedCustomers) this.customers = JSON.parse(savedCustomers)
+  if (savedLedgers) this.customerLedgers = JSON.parse(savedLedgers)
+}
+
+ShopManager.prototype.saveCustomers = function() {
+  try {
+    localStorage.setItem("shop_customers", JSON.stringify(this.customers))
+    localStorage.setItem("shop_customer_ledgers", JSON.stringify(this.customerLedgers))
+  } catch (error) {
+    console.error("Error saving customers:", error)
+    showToast("Error saving customer data.", "error")
+  }
+}
+
+ShopManager.prototype.initCustomerEventListeners = function() {
+  const addCustomerBtn = document.getElementById("addCustomerBtn")
+  const saveCustomerBtn = document.getElementById("saveCustomerBtn")
+  const addTransactionBtn = document.getElementById("addTransactionBtn")
+  const backToCustomersBtn = document.getElementById("backToCustomersBtn")
+  const customerSearch = document.getElementById("customerSearch")
+  const addCustomerModal = document.getElementById("addCustomerModal")
+  const printLedgerBtn = document.getElementById("printLedgerBtn")
+  const closePrintBtn = document.getElementById("closePrintBtn")
+  
+  if (addCustomerBtn) {
+    addCustomerBtn.addEventListener("click", () => {
+      this.editingCustomerId = null
+      document.getElementById("customerModalTitle").textContent = "Add New Customer"
+      document.getElementById("modalCustomerName").value = ""
+      document.getElementById("modalCustomerPhone").value = ""
+      document.getElementById("modalCustomerAddress").value = ""
+      addCustomerModal.style.display = "block"
+    })
+  }
+  
+  if (saveCustomerBtn) {
+    saveCustomerBtn.addEventListener("click", () => {
+      this.saveCustomer()
+    })
+  }
+  
+  if (addTransactionBtn) {
+    addTransactionBtn.addEventListener("click", () => {
+      this.addTransaction()
+    })
+  }
+  
+  if (backToCustomersBtn) {
+    backToCustomersBtn.addEventListener("click", () => {
+      this.showCustomerList()
+    })
+  }
+  
+  if (printLedgerBtn) {
+    printLedgerBtn.addEventListener("click", () => {
+      if (this.currentViewingCustomerId) {
+        this.printLedgerStatement(this.currentViewingCustomerId)
+      } else {
+        showToast("No customer selected", "warning")
+      }
+    })
+  }
+  
+  if (closePrintBtn) {
+    closePrintBtn.addEventListener("click", () => {
+      document.getElementById("printStatementContainer").style.display = "none"
+    })
+  }
+  
+  if (customerSearch) {
+    const debouncedSearch = debounce((value) => {
+      this.searchCustomers(value)
+    }, 200)
+    
+    customerSearch.addEventListener("input", (e) => {
+      debouncedSearch(e.target.value)
+    })
+  }
+  
+  // Close modal handlers
+  document.querySelectorAll("#addCustomerModal .close, #addCustomerModal .close-modal").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      addCustomerModal.style.display = "none"
+    })
+  })
+}
+
+ShopManager.prototype.saveCustomer = function() {
+  const name = document.getElementById("modalCustomerName").value.trim()
+  const phone = document.getElementById("modalCustomerPhone").value.trim()
+  const address = document.getElementById("modalCustomerAddress").value.trim()
+  
+  if (!name || !phone) {
+    showToast("Please fill in all required fields", "warning")
+    return
+  }
+  
+  const customerId = this.editingCustomerId || "cust_" + Date.now()
+  
+  if (this.editingCustomerId) {
+    // Edit existing customer
+    const customer = this.customers.find(c => c.id === customerId)
+    if (customer) {
+      customer.name = name
+      customer.phone = phone
+      customer.address = address
+    }
+  } else {
+    // Add new customer
+    const customer = {
+      id: customerId,
+      name: name,
+      phone: phone,
+      address: address,
+      createdAt: new Date().toISOString()
+    }
+    this.customers.push(customer)
+    this.customerLedgers[customerId] = []
+  }
+  
+  this.saveCustomers()
+  document.getElementById("addCustomerModal").style.display = "none"
+  this.renderCustomerList()
+  showToast(`Customer "${name}" saved successfully`, "success")
+}
+
+ShopManager.prototype.renderCustomerList = function() {
+  const tbody = document.getElementById("customersTableBody")
+  
+  if (this.customers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No customers yet. Click "Add New Customer" to get started.</td></tr>'
+    return
+  }
+  
+  tbody.innerHTML = this.customers.map(customer => {
+    const ledger = this.customerLedgers[customer.id] || []
+    const balance = this.calculateBalance(ledger)
+    const balanceClass = balance > 0 ? "customer-balance-negative" : "customer-balance-positive"
+    
+    return `
+      <tr>
+        <td>${customer.name}</td>
+        <td>${customer.phone}</td>
+        <td>${customer.address}</td>
+        <td class="${balanceClass}">${formatIndianNumber(Math.abs(balance))}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="shopManager.viewCustomerLedger('${customer.id}')" style="margin-right: 0.5rem;">View</button>
+          <button class="btn btn-secondary btn-sm" onclick="shopManager.editCustomer('${customer.id}')" style="margin-right: 0.5rem;">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="shopManager.deleteCustomer('${customer.id}')">Delete</button>
+        </td>
+      </tr>
+    `
+  }).join("")
+}
+
+ShopManager.prototype.calculateBalance = function(ledger) {
+  let balance = 0
+  ledger.forEach(transaction => {
+    balance += parseFloat(transaction.debit) || 0
+    balance -= parseFloat(transaction.credit) || 0
+  })
+  return balance
+}
+
+ShopManager.prototype.viewCustomerLedger = function(customerId) {
+  this.currentViewingCustomerId = customerId
+  const customer = this.customers.find(c => c.id === customerId)
+  
+  if (!customer) {
+    showToast("Customer not found", "error")
+    return
+  }
+  
+  document.getElementById("customerName").textContent = customer.name
+  document.getElementById("customerPhone").textContent = customer.phone
+  document.getElementById("customerAddress").textContent = customer.address
+  
+  const ledger = this.customerLedgers[customerId] || []
+  const balance = this.calculateBalance(ledger)
+  document.getElementById("customerBalance").textContent = formatIndianNumber(Math.abs(balance)) + (balance > 0 ? " (ধার)" : " (জমা)")
+  
+  this.renderLedger(customerId)
+  
+  document.getElementById("customerListView").style.display = "none"
+  document.getElementById("customerLedgerView").style.display = "block"
+  
+  // Reset transaction form
+  document.getElementById("debitAmount").value = ""
+  document.getElementById("creditAmount").value = ""
+  document.getElementById("transactionDescription").value = ""
+}
+
+ShopManager.prototype.renderLedger = function(customerId) {
+  const ledger = this.customerLedgers[customerId] || []
+  const tbody = document.getElementById("ledgerTableBody")
+  
+  if (ledger.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No transactions yet.</td></tr>'
+    return
+  }
+  
+  let runningBalance = 0
+  tbody.innerHTML = ledger.map((transaction, index) => {
+    runningBalance += parseFloat(transaction.debit) || 0
+    runningBalance -= parseFloat(transaction.credit) || 0
+    
+    const debitDisplay = transaction.debit ? `<span class="ledger-debit">${formatIndianNumber(transaction.debit)}</span>` : "-"
+    const creditDisplay = transaction.credit ? `<span class="ledger-credit">${formatIndianNumber(transaction.credit)}</span>` : "-"
+    
+    return `
+      <tr>
+        <td>${transaction.timestamp}</td>
+        <td>${transaction.description}</td>
+        <td>${debitDisplay}</td>
+        <td>${creditDisplay}</td>
+        <td><strong>${formatIndianNumber(Math.abs(runningBalance))}</strong></td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="shopManager.deleteTransaction('${customerId}', ${index})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `
+  }).join("")
+}
+
+ShopManager.prototype.addTransaction = function() {
+  const debit = parseFloat(document.getElementById("debitAmount").value) || 0
+  const credit = parseFloat(document.getElementById("creditAmount").value) || 0
+  const description = document.getElementById("transactionDescription").value.trim()
+  
+  if (debit === 0 && credit === 0) {
+    showToast("Please enter either debit or credit amount", "warning")
+    return
+  }
+  
+  if (!description) {
+    showToast("Please enter a description", "warning")
+    return
+  }
+  
+  const customerId = this.currentViewingCustomerId
+  if (!customerId) {
+    showToast("No customer selected", "error")
+    return
+  }
+  
+  const now = new Date()
+  const timestamp = now.toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  })
+  
+  const transaction = {
+    timestamp: timestamp,
+    description: description,
+    debit: debit,
+    credit: credit
+  }
+  
+  if (!this.customerLedgers[customerId]) {
+    this.customerLedgers[customerId] = []
+  }
+  
+  this.customerLedgers[customerId].push(transaction)
+  this.saveCustomers()
+  this.renderLedger(customerId)
+  this.renderCustomerList()
+  this.viewCustomerLedger(customerId)
+  
+  showToast("Transaction added successfully", "success")
+}
+
+ShopManager.prototype.deleteTransaction = function(customerId, index) {
+  if (!this.customerLedgers[customerId]) return
+  
+  this.customerLedgers[customerId].splice(index, 1)
+  this.saveCustomers()
+  this.renderLedger(customerId)
+  this.renderCustomerList()
+  showToast("Transaction deleted successfully", "success")
+}
+
+ShopManager.prototype.showCustomerList = function() {
+  document.getElementById("customerListView").style.display = "block"
+  document.getElementById("customerLedgerView").style.display = "none"
+  this.renderCustomerList()
+}
+
+ShopManager.prototype.searchCustomers = function(query) {
+  const tbody = document.getElementById("customersTableBody")
+  
+  if (!query.trim()) {
+    this.renderCustomerList()
+    return
+  }
+  
+  const filtered = this.customers.filter(customer => 
+    customer.name.toLowerCase().includes(query.toLowerCase()) ||
+    customer.phone.includes(query)
+  )
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No customers found.</td></tr>'
+    return
+  }
+  
+  tbody.innerHTML = filtered.map(customer => {
+    const ledger = this.customerLedgers[customer.id] || []
+    const balance = this.calculateBalance(ledger)
+    const balanceClass = balance > 0 ? "customer-balance-negative" : "customer-balance-positive"
+    
+    return `
+      <tr>
+        <td>${customer.name}</td>
+        <td>${customer.phone}</td>
+        <td>${customer.address}</td>
+        <td class="${balanceClass}">${formatIndianNumber(Math.abs(balance))}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="shopManager.viewCustomerLedger('${customer.id}')" style="margin-right: 0.5rem;">View</button>
+          <button class="btn btn-secondary btn-sm" onclick="shopManager.editCustomer('${customer.id}')" style="margin-right: 0.5rem;">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="shopManager.deleteCustomer('${customer.id}')">Delete</button>
+        </td>
+      </tr>
+    `
+  }).join("")
+}
+
+ShopManager.prototype.editCustomer = function(customerId) {
+  const customer = this.customers.find(c => c.id === customerId)
+  if (!customer) return
+  
+  this.editingCustomerId = customerId
+  document.getElementById("customerModalTitle").textContent = "Edit Customer"
+  document.getElementById("modalCustomerName").value = customer.name
+  document.getElementById("modalCustomerPhone").value = customer.phone
+  document.getElementById("modalCustomerAddress").value = customer.address
+  document.getElementById("addCustomerModal").style.display = "block"
+}
+
+ShopManager.prototype.deleteCustomer = function(customerId) {
+  if (!confirm("Are you sure you want to delete this customer and their ledger?")) return
+  
+  this.customers = this.customers.filter(c => c.id !== customerId)
+  delete this.customerLedgers[customerId]
+  this.saveCustomers()
+  this.renderCustomerList()
+  showToast("Customer deleted successfully", "success")
+}
+
+ShopManager.prototype.printLedgerStatement = function(customerId) {
+  const customer = this.customers.find(c => c.id === customerId)
+  if (!customer) {
+    showToast("Customer not found", "error")
+    return
+  }
+  
+  const ledger = this.customerLedgers[customerId] || []
+  const balance = this.calculateBalance(ledger)
+  
+  let runningBalance = 0
+  let totalDebit = 0
+  let totalCredit = 0
+  
+  const ledgerRows = ledger.map((transaction, index) => {
+    runningBalance += parseFloat(transaction.debit) || 0
+    runningBalance -= parseFloat(transaction.credit) || 0
+    totalDebit += parseFloat(transaction.debit) || 0
+    totalCredit += parseFloat(transaction.credit) || 0
+    
+    const debitDisplay = transaction.debit ? transaction.debit.toFixed(2) : "-"
+    const creditDisplay = transaction.credit ? transaction.credit.toFixed(2) : "-"
+    
+    return `
+      <tr>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: center;">${index + 1}</td>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">${transaction.timestamp}</td>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">${transaction.description}</td>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right;">${debitDisplay}</td>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right;">${creditDisplay}</td>
+        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${Math.abs(runningBalance).toFixed(2)}</td>
+      </tr>
+    `
+  }).join("")
+  
+  const currentDate = new Date().toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  })
+  
+  const finalBalance = Math.abs(balance)
+  const balanceStatus = balance > 0 ? "CUSTOMER OWES" : "CUSTOMER CREDIT"
+  
+  const printContent = `
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .statement-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #333;
+        padding-bottom: 1rem;
+      }
+      .statement-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        color: #333;
+      }
+      .statement-header p {
+        margin: 0.5rem 0;
+        color: #666;
+      }
+      .customer-info {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+      }
+      .customer-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+      .info-label {
+        font-weight: bold;
+        color: #333;
+        min-width: 150px;
+      }
+      .info-value {
+        color: #666;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+      }
+      table thead {
+        background-color: #333;
+        color: white;
+      }
+      table th {
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: bold;
+      }
+      table th:nth-child(4),
+      table th:nth-child(5),
+      table th:nth-child(6) {
+        text-align: right;
+      }
+      table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #ddd;
+      }
+      table td:nth-child(4),
+      table td:nth-child(5),
+      table td:nth-child(6) {
+        text-align: right;
+      }
+      .totals-row {
+        background-color: #f0f0f0;
+        font-weight: bold;
+      }
+      .summary-section {
+        margin-top: 2rem;
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border: 2px solid #333;
+        border-radius: 5px;
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+      }
+      .balance-status {
+        background-color: #ff6b6b;
+        color: white;
+        padding: 1rem;
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 5px;
+        margin-top: 1rem;
+      }
+      .balance-status.credit {
+        background-color: #51cf66;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #ddd;
+        color: #999;
+        font-size: 0.9rem;
+      }
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        #printStatementContainer {
+          padding: 0 !important;
+        }
+      }
+    </style>
+    
+    <div class="statement-header">
+      <h1>CUSTOMER LEDGER STATEMENT</h1>
+      <p>One-Stop Cyber Cafe</p>
+      <p>Printed on: ${currentDate}</p>
+    </div>
+    
+    <div class="customer-info">
+      <div class="customer-info-row">
+        <span class="info-label">Customer Name:</span>
+        <span class="info-value">${customer.name}</span>
+      </div>
+      <div class="customer-info-row">
+        <span class="info-label">Phone Number:</span>
+        <span class="info-value">${customer.phone}</span>
+      </div>
+      <div class="customer-info-row">
+        <span class="info-label">Address:</span>
+        <span class="info-value">${customer.address}</span>
+      </div>
+    </div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 5%;">SL</th>
+          <th style="width: 25%;">Date / Time</th>
+          <th style="width: 30%;">Description</th>
+          <th style="width: 15%;">Debit (ধার)</th>
+          <th style="width: 15%;">Credit (জমা)</th>
+          <th style="width: 10%;">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ledgerRows}
+        <tr class="totals-row">
+          <td colspan="3" style="text-align: right;">TOTAL:</td>
+          <td>${totalDebit.toFixed(2)}</td>
+          <td>${totalCredit.toFixed(2)}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="summary-section">
+      <div class="summary-row">
+        <span>Total Debit (Money Owed):</span>
+        <span>${totalDebit.toFixed(2)}</span>
+      </div>
+      <div class="summary-row">
+        <span>Total Credit (Payment Received):</span>
+        <span>${totalCredit.toFixed(2)}</span>
+      </div>
+      <div class="summary-row">
+        <span>Final Balance:</span>
+        <span>${finalBalance.toFixed(2)}</span>
+      </div>
+      
+      <div class="balance-status ${balance <= 0 ? 'credit' : ''}">
+        ${balanceStatus}:   ${finalBalance.toFixed(2)}
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>This is a computer-generated statement. No signature required.</p>
+      <p>For inquiries, please contact the cafe management.</p>
+    </div>
+  `
+  
+  document.getElementById("printContent").innerHTML = printContent
+  document.getElementById("printStatementContainer").style.display = "block"
+  
+  // Scroll to top
+  document.getElementById("printStatementContainer").scrollTop = 0
+}
+
 const shopManager = new ShopManager()
+shopManager.initCustomerManagement()
