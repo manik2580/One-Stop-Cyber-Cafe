@@ -710,8 +710,7 @@ class ShopManager {
   updateDashboard() {
     const today = new Date().toDateString()
     const todaySales = this.sales.filter((sale) => {
-      // FIX: Always use timestamp field for consistent date filtering
-      const saleDate = new Date(sale.timestamp).toDateString()
+      const saleDate = sale.date ? new Date(sale.date).toDateString() : new Date(sale.timestamp).toDateString()
       return saleDate === today
     })
 
@@ -761,8 +760,7 @@ class ShopManager {
     const currentYear = now.getFullYear()
 
     const monthlySales = this.sales.filter((sale) => {
-      // FIX: Always use timestamp field for consistent date filtering
-      const saleDate = new Date(sale.timestamp)
+      const saleDate = sale.date ? new Date(sale.date) : new Date(sale.timestamp)
       return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear
     })
 
@@ -1522,9 +1520,13 @@ generateSalesRangeReport() {
   fromDate.setHours(0, 0, 0, 0)
   toDate.setHours(23, 59, 59, 999)
 
-  // FIX: Use consistent timestamp field for all sales filtering
   const rangeSales = this.sales.filter((sale) => {
-    const saleDate = new Date(sale.timestamp)
+    let saleDate
+    if (sale.type === "service") {
+      saleDate = new Date(sale.date)
+    } else {
+      saleDate = new Date(sale.timestamp)
+    }
     return saleDate >= fromDate && saleDate <= toDate
   })
 
@@ -1542,12 +1544,11 @@ generateSalesRangeReport() {
       totalProfit += sale.profit
 
       const row = tbody.insertRow()
-      // FIX: Use correct quantity (service.quantity) instead of hardcoded 1
       row.innerHTML = `
-        <td>${new Date(sale.timestamp).toLocaleDateString()}</td>
-        <td>${new Date(sale.timestamp).toLocaleTimeString()}</td>
+        <td>${new Date(sale.date).toLocaleDateString()}</td>
+        <td>${new Date(sale.date).toLocaleTimeString()}</td>
         <td>${sale.serviceName}</td>
-        <td>${sale.quantity}</td>
+        <td>1</td>
         <td>${this.formatCurrency(0)}</td>
         <td>${this.formatCurrency(sale.amount)}</td>
         <td>${this.formatCurrency(sale.profit)}</td>
@@ -1602,9 +1603,13 @@ generateSalesRangeReport() {
 // Fix prepareDailySalesPrintContent()
 prepareDailySalesPrintContent() {
   const today = new Date().toDateString()
-  // FIX: Use consistent timestamp field for all sales filtering
   const dailySales = this.sales.filter((sale) => {
-    const saleDate = new Date(sale.timestamp).toDateString()
+    let saleDate
+    if (sale.type === "service") {
+      saleDate = new Date(sale.date).toDateString()
+    } else {
+      saleDate = new Date(sale.timestamp).toDateString()
+    }
     return saleDate === today
   })
 
@@ -1619,9 +1624,9 @@ prepareDailySalesPrintContent() {
 
       return `
         <tr>
-          <td>${new Date(sale.timestamp).toLocaleTimeString()}</td>
+          <td>${new Date(sale.date).toLocaleTimeString()}</td>
           <td>${sale.serviceName}</td>
-          <td>${sale.quantity}</td>
+          <td>1</td>
           <td>${this.formatCurrency(0)}</td>
           <td>${this.formatCurrency(sale.amount)}</td>
           <td>${this.formatCurrency(sale.profit)}</td>
@@ -1708,9 +1713,13 @@ prepareRangeSalesPrintContent() {
   fromDate.setHours(0, 0, 0, 0)
   toDate.setHours(23, 59, 59, 999)
 
-  // FIX: Use consistent timestamp field for all sales filtering
   const rangeSales = this.sales.filter((sale) => {
-    const saleDate = new Date(sale.timestamp)
+    let saleDate
+    if (sale.type === "service") {
+      saleDate = new Date(sale.date)
+    } else {
+      saleDate = new Date(sale.timestamp)
+    }
     return saleDate >= fromDate && saleDate <= toDate
   })
 
@@ -1725,10 +1734,10 @@ prepareRangeSalesPrintContent() {
 
       return `
         <tr>
-          <td>${new Date(sale.timestamp).toLocaleDateString()}</td>
-          <td>${new Date(sale.timestamp).toLocaleTimeString()}</td>
+          <td>${new Date(sale.date).toLocaleDateString()}</td>
+          <td>${new Date(sale.date).toLocaleTimeString()}</td>
           <td>${sale.serviceName}</td>
-          <td>${sale.quantity}</td>
+          <td>1</td>
           <td>${this.formatCurrency(0)}</td>
           <td>${this.formatCurrency(sale.amount)}</td>
           <td>${this.formatCurrency(sale.profit)}</td>
@@ -3146,7 +3155,6 @@ prepareRangeSalesPrintContent() {
       return
     }
 
-    // FIX: Use consistent timestamp field for all sales (not 'date' for services)
     const serviceSale = {
       id: Date.now().toString(),
       type: "service",
@@ -3158,7 +3166,7 @@ prepareRangeSalesPrintContent() {
       amount: Number(amountInput.value),
       purchasePrice: 0,
       barcode: null,
-      timestamp: new Date().toISOString(),  // Changed from 'date' to 'timestamp' for consistency
+      date: new Date().toISOString(),
       time: new Date().toLocaleTimeString(),
       profit: Number(amountInput.value),
     }
@@ -3166,8 +3174,6 @@ prepareRangeSalesPrintContent() {
     this.sales.push(serviceSale)
     this.saveData()
     this.updateDashboard()
-    // FIX: Reload statements to sync Sales Range section
-    this.loadStatements()
 
     serviceTypeSelect.value = ""
     custNameInput.value = ""
