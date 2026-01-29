@@ -86,7 +86,7 @@ class ShopManager {
     this.settings = {
       shopName: "One Stop Cyber Cafe",
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
-      shopPhone: "01305681653",
+      shopPhone: "01605681653",
       lowStockThreshold: 10,
       currency: " ",
       darkMode: "light",
@@ -250,7 +250,7 @@ class ShopManager {
     this.settings = {
       shopName: "One Stop Cyber Cafe",
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
-      shopPhone: "01305681653",
+      shopPhone: "01605681653",
       lowStockThreshold: 10,
       currency: " ",
       darkMode: "light",
