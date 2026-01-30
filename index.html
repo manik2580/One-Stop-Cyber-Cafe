@@ -860,6 +860,9 @@
                     <button id="addCustomerBtn" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add New Customer
                     </button>
+                    <button id="printCustomerListBtn" class="btn btn-secondary">
+                        <i class="fas fa-print"></i> Print Customer List
+                    </button>
                     <input type="text" id="customerSearch" class="search-input-large" style="max-width: 400px;" placeholder="Search by name or phone number...">
                 </div>
                 
@@ -927,8 +930,8 @@
                         <div style="background: var(--bg-secondary); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); border: 1px solid var(--border-primary);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                                 <h3 style="margin: 0; color: var(--text-tertiary);">Ledger Book (Hishab-Kitab)</h3>
-                                <button id="printLedgerBtn" class="btn btn-primary" style="margin: 0;">
-                                    <i class="fas fa-print"></i> Print Statement
+                                <button id="openDateRangeBtn" class="btn btn-primary" style="margin: 0;">
+                                    <i class="fas fa-calendar"></i> Print Statement
                                 </button>
                             </div>
                             
@@ -1122,8 +1125,32 @@
         </main>
     </div>
 
+    <!-- Date Range Modal -->
+    <div id="dateRangeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-secondary); border-radius: 12px; padding: 2rem; box-shadow: var(--shadow-lg); border: 1px solid var(--border-primary); max-width: 600px; width: 90%;">
+            <div style="display: flex; gap: 1.5rem; align-items: flex-end;">
+                <!-- Start Date -->
+                <div style="flex: 1;">
+                    <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.95rem;">Start Date:</label>
+                    <input type="date" id="statementFromDate" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 1rem; background: var(--bg-secondary); color: var(--text-primary);">
+                </div>
+                
+                <!-- End Date -->
+                <div style="flex: 1;">
+                    <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.95rem;">End Date:</label>
+                    <input type="date" id="statementToDate" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 1rem; background: var(--bg-secondary); color: var(--text-primary);">
+                </div>
+                
+                <!-- Filter Button -->
+                <button id="confirmDateRangeBtn" class="btn btn-primary" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="printStatementContainer" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 10000; overflow-y: auto; padding: 2rem;">
-        <div id="printContent" style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <div id="printContent" style="max-width: 900px; margin: 0 auto; font-family: Arial, sans-serif;">
             <!-- Print content will be inserted here -->
         </div>
         <div style="text-align: center; margin-top: 2rem;">

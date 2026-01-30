@@ -3048,6 +3048,159 @@ prepareRangeSalesPrintContent() {
   }
   // </CHANGE>
 
+  printCustomerList() {
+    let totalDebit = 0
+    let totalCredit = 0
+    
+    const rows = this.customers.map((customer) => {
+      const ledger = this.customerLedgers[customer.id] || []
+      const balance = this.calculateBalance(ledger)
+      
+      // Calculate debit/credit based on final balance
+      if (balance > 0) {
+        totalDebit += balance
+      } else {
+        totalCredit += Math.abs(balance)
+      }
+      
+      const balanceColor = balance > 0 ? '#dc2626' : '#16a34a'
+      const balanceSymbol = balance > 0 ? '-' : '+'
+      
+      return `
+        <tr>
+          <td>${customer.name}</td>
+          <td>${customer.phone}</td>
+          <td style="color: ${balanceColor}; font-weight: 600; text-align: right;">${balanceSymbol}${this.formatCurrency(Math.abs(balance))}</td>
+        </tr>
+      `
+    }).join("")
+
+    const title = `Customer List Report - ${new Date().toLocaleDateString()}`
+    const printWindow = window.open("", "_blank", "width=900,height=600")
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #000;
+              background: #fff;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #000;
+              padding-bottom: 20px;
+            }
+            .header h1 { 
+              margin: 0 0 10px 0; 
+              font-size: 24px;
+            }
+            .header p { 
+              margin: 5px 0; 
+              font-size: 14px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px; 
+              font-size: 12px;
+            }
+            th, td { 
+              border: 1px solid #000; 
+              padding: 8px; 
+              text-align: left; 
+            }
+            th { 
+              background-color: #f0f0f0; 
+              font-weight: bold;
+            }
+            .totals { 
+              margin-top: 20px; 
+              font-weight: bold; 
+              font-size: 14px;
+              border-top: 2px solid #000;
+              padding-top: 10px;
+            }
+            .total-row { 
+              display: flex; 
+              justify-content: space-between; 
+              margin-bottom: 5px; 
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+              @page {
+                size: A4;
+                margin: 10mm;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${this.settings.shopName}</h1>
+            <p>${this.settings.shopAddress}</p>
+            <p>Phone: ${this.settings.shopPhone}</p>
+            <p><strong>${title}</strong></p>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th style="text-align: right;">Total Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="3" style="text-align: center;">No customers available</td></tr>'}
+            </tbody>
+          </table>
+          
+          <div class="totals">
+            <div class="total-row">
+              <span>Total Debit (ধার):</span>
+              <span style="color: #dc2626;">${this.formatCurrency(totalDebit)}</span>
+            </div>
+            <div class="total-row">
+              <span>Total Credit (জমা):</span>
+              <span style="color: #16a34a;">${this.formatCurrency(totalCredit)}</span>
+            </div>
+            <div class="total-row">
+              <span>Total Customers:</span>
+              <span>${this.customers.length}</span>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>This is a computer-generated report from ${this.settings.shopName}</p>
+          </div>
+        </body>
+      </html>
+    `)
+
+    printWindow.document.close()
+
+    printWindow.onload = () => {
+      printWindow.focus()
+      printWindow.print()
+      setTimeout(() => {
+        printWindow.close()
+      }, 3000)
+    }
+  }
+
   // ========== SERVICES METHODS ==========
   loadServices() {
     this.updateServiceTypeDropdown()
@@ -3756,6 +3909,7 @@ ShopManager.prototype.saveCustomers = function() {
 
 ShopManager.prototype.initCustomerEventListeners = function() {
   const addCustomerBtn = document.getElementById("addCustomerBtn")
+  const printCustomerListBtn = document.getElementById("printCustomerListBtn")
   const saveCustomerBtn = document.getElementById("saveCustomerBtn")
   const addTransactionBtn = document.getElementById("addTransactionBtn")
   const backToCustomersBtn = document.getElementById("backToCustomersBtn")
@@ -3772,6 +3926,12 @@ ShopManager.prototype.initCustomerEventListeners = function() {
       document.getElementById("modalCustomerPhone").value = ""
       document.getElementById("modalCustomerAddress").value = ""
       addCustomerModal.style.display = "block"
+    })
+  }
+
+  if (printCustomerListBtn) {
+    printCustomerListBtn.addEventListener("click", () => {
+      this.printCustomerList()
     })
   }
   
@@ -3793,13 +3953,51 @@ ShopManager.prototype.initCustomerEventListeners = function() {
     })
   }
   
-  if (printLedgerBtn) {
-    printLedgerBtn.addEventListener("click", () => {
+  const openDateRangeBtn = document.getElementById("openDateRangeBtn")
+  const confirmDateRangeBtn = document.getElementById("confirmDateRangeBtn")
+  const dateRangeModal = document.getElementById("dateRangeModal")
+  
+  if (openDateRangeBtn) {
+    openDateRangeBtn.addEventListener("click", () => {
       if (this.currentViewingCustomerId) {
-        this.printLedgerStatement(this.currentViewingCustomerId)
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0]
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        document.getElementById("statementFromDate").value = thirtyDaysAgo
+        document.getElementById("statementToDate").value = today
+        dateRangeModal.style.display = "flex"
       } else {
         showToast("No customer selected", "warning")
       }
+    })
+  }
+  
+  // Close modal when clicking outside
+  if (dateRangeModal) {
+    dateRangeModal.addEventListener("click", (e) => {
+      if (e.target === dateRangeModal) {
+        dateRangeModal.style.display = "none"
+      }
+    })
+  }
+  
+  if (confirmDateRangeBtn) {
+    confirmDateRangeBtn.addEventListener("click", () => {
+      const fromDate = document.getElementById("statementFromDate").value
+      const toDate = document.getElementById("statementToDate").value
+      
+      if (!fromDate || !toDate) {
+        showToast("Please select both dates", "warning")
+        return
+      }
+      
+      if (new Date(fromDate) > new Date(toDate)) {
+        showToast("From Date must be before To Date", "warning")
+        return
+      }
+      
+      dateRangeModal.style.display = "none"
+      this.printLedgerStatement(this.currentViewingCustomerId, fromDate, toDate)
     })
   }
   
@@ -3877,14 +4075,15 @@ ShopManager.prototype.renderCustomerList = function() {
   tbody.innerHTML = this.customers.map(customer => {
     const ledger = this.customerLedgers[customer.id] || []
     const balance = this.calculateBalance(ledger)
-    const balanceClass = balance > 0 ? "customer-balance-negative" : "customer-balance-positive"
+    const balanceColor = balance > 0 ? '#dc2626' : '#16a34a'
+    const balanceSymbol = balance > 0 ? '-' : '+'
     
     return `
       <tr>
         <td>${customer.name}</td>
         <td>${customer.phone}</td>
         <td>${customer.address}</td>
-        <td class="${balanceClass}">${formatIndianNumber(Math.abs(balance))}</td>
+        <td style="color: ${balanceColor}; font-weight: 700; font-family: 'Courier New', monospace;">${balanceSymbol}${formatIndianNumber(Math.abs(balance))}</td>
         <td>
           <button class="btn btn-primary btn-sm" onclick="shopManager.viewCustomerLedger('${customer.id}')" style="margin-right: 0.5rem;">View</button>
           <button class="btn btn-secondary btn-sm" onclick="shopManager.editCustomer('${customer.id}')" style="margin-right: 0.5rem;">Edit</button>
@@ -3919,7 +4118,12 @@ ShopManager.prototype.viewCustomerLedger = function(customerId) {
   
   const ledger = this.customerLedgers[customerId] || []
   const balance = this.calculateBalance(ledger)
-  document.getElementById("customerBalance").textContent = formatIndianNumber(Math.abs(balance)) + (balance > 0 ? " (ধার)" : " (জমা)")
+  const balanceEl = document.getElementById("customerBalance")
+  const balanceColor = balance > 0 ? '#dc2626' : '#16a34a'
+  const balanceLabel = balance > 0 ? "(ধার)" : "(জমা)"
+  balanceEl.textContent = formatIndianNumber(Math.abs(balance)) + " " + balanceLabel
+  balanceEl.style.color = balanceColor
+  balanceEl.style.fontWeight = '700'
   
   this.renderLedger(customerId)
   
@@ -4077,14 +4281,15 @@ ShopManager.prototype.searchCustomers = function(query) {
   tbody.innerHTML = filtered.map(customer => {
     const ledger = this.customerLedgers[customer.id] || []
     const balance = this.calculateBalance(ledger)
-    const balanceClass = balance > 0 ? "customer-balance-negative" : "customer-balance-positive"
+    const balanceColor = balance > 0 ? '#dc2626' : '#16a34a'
+    const balanceSymbol = balance > 0 ? '-' : '+'
     
     return `
       <tr>
         <td>${customer.name}</td>
         <td>${customer.phone}</td>
         <td>${customer.address}</td>
-        <td class="${balanceClass}">${formatIndianNumber(Math.abs(balance))}</td>
+        <td style="color: ${balanceColor}; font-weight: 700; font-family: 'Courier New', monospace;">${balanceSymbol}${formatIndianNumber(Math.abs(balance))}</td>
         <td>
           <button class="btn btn-primary btn-sm" onclick="shopManager.viewCustomerLedger('${customer.id}')" style="margin-right: 0.5rem;">View</button>
           <button class="btn btn-secondary btn-sm" onclick="shopManager.editCustomer('${customer.id}')" style="margin-right: 0.5rem;">Edit</button>
@@ -4117,19 +4322,35 @@ ShopManager.prototype.deleteCustomer = function(customerId) {
   showToast("Customer deleted successfully", "success")
 }
 
-ShopManager.prototype.printLedgerStatement = function(customerId) {
+ShopManager.prototype.printLedgerStatement = function(customerId, fromDate, toDate) {
   const customer = this.customers.find(c => c.id === customerId)
   if (!customer) {
     showToast("Customer not found", "error")
     return
   }
   
-  const ledger = this.customerLedgers[customerId] || []
-  const balance = this.calculateBalance(ledger)
+  const allLedger = this.customerLedgers[customerId] || []
   
-  let runningBalance = 0
+  // Calculate opening balance (transactions before start date)
+  let openingBalance = 0
+  const filteredLedger = []
+  
+  const startDate = new Date(fromDate)
+  const endDate = new Date(toDate)
+  
+  allLedger.forEach(transaction => {
+    const transDate = new Date(transaction.timestamp.split(' ')[0])
+    if (transDate < startDate) {
+      openingBalance += (parseFloat(transaction.debit) || 0) - (parseFloat(transaction.credit) || 0)
+    } else if (transDate >= startDate && transDate <= endDate) {
+      filteredLedger.push(transaction)
+    }
+  })
+  
+  const ledger = filteredLedger
   let totalDebit = 0
   let totalCredit = 0
+  let runningBalance = 0
   
   // Calculate totals
   ledger.forEach((transaction) => {
@@ -4145,8 +4366,11 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
     minute: "2-digit"
   })
   
-  const finalBalance = Math.abs(balance)
-  const balanceStatus = balance > 0 ? "CUSTOMER OWES" : "CUSTOMER CREDIT"
+  const finalBalance = totalDebit - totalCredit + openingBalance
+  const balanceStatus = finalBalance > 0 ? "CUSTOMER OWES" : "CUSTOMER CREDIT"
+  
+  const fromDateFormatted = new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  const toDateFormatted = new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   
   const printContent = `
     <style>
@@ -4370,14 +4594,15 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
     <div style="font-family: Arial, sans-serif; max-width: 850px; margin: 0 auto; padding: 30px 20px; background: white;">
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
-        <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #1a202c;">One-Stop Cyber Cafe</h2>
-        <p style="margin: 3px 0 0 0; font-size: 12px; color: #333;">${customer.address}</p>
-        <p style="margin: 2px 0; font-size: 12px; color: #333;">Phone: ${customer.phone}</p>
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #1a202c;">${this.settings.shopName}</h2>
+        <p style="margin: 3px 0 0 0; font-size: 12px; color: #333;">${this.settings.shopAddress}</p>
+        <p style="margin: 2px 0; font-size: 12px; color: #333;">Phone: ${this.settings.shopPhone}</p>
       </div>
 
       <!-- Statement Title -->
       <div style="margin-bottom: 15px;">
         <h3 style="margin: 0 0 3px 0; font-size: 13px; font-weight: 700; color: #1a202c;">Customer Ledger Statement</h3>
+        <p style="margin: 3px 0; font-size: 11px; color: #666;">Statement Period: ${fromDateFormatted} to ${toDateFormatted}</p>
         <p style="margin: 0; font-size: 11px; color: #666;">Generated on: ${currentDate}</p>
       </div>
 
@@ -4400,9 +4625,17 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
           </tr>
         </thead>
         <tbody>
+          <!-- Opening Balance Row -->
+          <tr style="border: 1px solid #ddd; background: #fffbea;">
+            <td style="padding: 10px 8px; border: 1px solid #ddd; color: #333; font-weight: 700;">--</td>
+            <td style="padding: 10px 8px; border: 1px solid #ddd; color: #333; font-weight: 700;">Previous Balance</td>
+            <td style="padding: 10px 8px; text-align: right; border: 1px solid #ddd; font-weight: 700; color: #333;">--</td>
+            <td style="padding: 10px 8px; text-align: right; border: 1px solid #ddd; font-weight: 700; color: #333;">--</td>
+            <td style="padding: 10px 8px; text-align: right; border: 1px solid #ddd; font-weight: 700; color: #dc2626;">${Math.abs(openingBalance).toFixed(2)}</td>
+          </tr>
+          
           ${ledger.map((transaction, index) => {
-            runningBalance += parseFloat(transaction.debit) || 0
-            runningBalance -= parseFloat(transaction.credit) || 0
+            runningBalance = openingBalance + (parseFloat(transaction.debit) || 0) - (parseFloat(transaction.credit) || 0)
             const debit = transaction.debit ? transaction.debit.toFixed(2) : ''
             const credit = transaction.credit ? transaction.credit.toFixed(2) : ''
             
@@ -4422,6 +4655,10 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
       <!-- Summary -->
       <div style="margin-bottom: 20px; font-size: 13px;">
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;">
+          <span style="font-weight: 700; color: #1a202c;">Previous Balance:</span>
+          <span style="color: #dc2626; font-weight: 600;">${Math.abs(openingBalance).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;">
           <span style="font-weight: 700; color: #1a202c;">Total Debit (ধার):</span>
           <span style="color: #dc2626; font-weight: 600;">${totalDebit.toFixed(2)}</span>
         </div>
@@ -4430,8 +4667,8 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
           <span style="color: #16a34a; font-weight: 600;">${totalCredit.toFixed(2)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #333; border-bottom: 2px solid #333; margin-top: 8px;">
-          <span style="font-weight: 700; color: #1a202c;">Balance:</span>
-          <span style="font-weight: 700; color: #1a202c;">${(totalDebit - totalCredit).toFixed(2)}</span>
+          <span style="font-weight: 700; color: #1a202c;">Final Balance:</span>
+          <span style="font-weight: 700; color: ${finalBalance > 0 ? '#dc2626' : '#16a34a'}; font-size: 14px;">${finalBalance > 0 ? '-' : ''}${Math.abs(finalBalance).toFixed(2)}</span>
         </div>
       </div>
 
