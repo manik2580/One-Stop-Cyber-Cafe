@@ -10,7 +10,7 @@
   --bg-secondary: #ffffff;
   --bg-tertiary: #f0f4f8;
   --text-primary: #2d3748;
-  --text-secondary: #718096;
+  --text-secondary: #1a202c;
   --text-tertiary: #1a202c;
   --border-primary: #e2e8f0;
   --border-secondary: #cbd5e1;
@@ -30,7 +30,7 @@
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
   --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
+  --text-secondary: #f1f5f9;
   --text-tertiary: #f1f5f9;
   --border-primary: #475569;
   --border-secondary: #64748b;
@@ -2451,4 +2451,676 @@ tr:hover {
 .ledger-credit {
   color: var(--success);
   font-weight: 600;
+}
+
+
+
+/* calender */
+#salesFromDate {
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    outline: none;
+    background-color: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Hover effect */
+#salesFromDate:hover {
+    border-color: #4a90e2;
+}
+
+/* Focus effect */
+#salesFromDate:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 6px rgba(74, 144, 226, 0.4);
+}
+
+/* Calendar icon style (Chrome, Edge) */
+#salesFromDate::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(45%) sepia(60%) saturate(400%) hue-rotate(180deg);
+}
+
+/* ==================== BANK MANAGEMENT STYLES ==================== */
+
+.bank-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+@media (max-width: 1200px) {
+    .bank-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .bank-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-primary);
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+}
+
+.summary-value.deposit {
+    color: var(--success);
+}
+
+.summary-value.withdrawal {
+    color: var(--danger);
+}
+
+.summary-value.balance {
+    color: var(--accent-primary);
+}
+
+.bank-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .bank-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+.bank-form-panel, .bank-statement-panel {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.bank-form-panel:hover, .bank-statement-panel:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.bank-form-panel h3, .bank-statement-panel h3 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.bank-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bank-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bank-form input, .bank-form select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.bank-form input:focus, .bank-form select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.bank-form .form-group label {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.bank-form .btn-primary {
+    padding: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+/* Statement Filters */
+.statement-filters {
+    background: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.statement-filters h3 {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+    .filter-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+}
+
+.filter-row .form-group {
+    gap: 0.4rem;
+}
+
+.filter-row input, .filter-row select {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+}
+
+.filter-row .btn-secondary {
+    padding: 0.65rem 1.5rem;
+}
+
+/* Statement Actions */
+.statement-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.statement-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+}
+
+.statement-actions .btn i {
+    font-size: 0.95rem;
+}
+
+/* Ledger Table */
+.ledger-table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+}
+
+.ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-secondary);
+}
+
+.ledger-table thead {
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-primary);
+}
+
+.ledger-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.ledger-table tbody tr {
+    border-bottom: 1px solid var(--border-primary);
+    transition: background-color 0.2s ease;
+}
+
+.ledger-table tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.ledger-table td {
+    padding: 1rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.ledger-table td:nth-child(3), .ledger-table td:nth-child(4), .ledger-table td:nth-child(5) {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+}
+
+.ledger-table .deposit {
+    color: var(--success);
+}
+
+.ledger-table .withdrawal {
+    color: var(--danger);
+}
+
+.ledger-table .balance {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+/* Corporate Print Statement Styling */
+#printContent {
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: var(--bg-secondary) !important;
+}
+
+.print-header {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 2.5rem;
+    text-align: center;
+    border-bottom: 3px solid var(--border-secondary);
+    margin-bottom: 2rem;
+    border-radius: 8px 8px 0 0;
+}
+
+.print-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+}
+
+.print-header p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
+    opacity: 0.95;
+}
+
+.print-customer-info {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-primary);
+}
+
+.print-customer-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+.print-customer-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.print-customer-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 150px;
+}
+
+.print-customer-value {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.print-statement-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.print-statement-table thead {
+    background: var(--bg-tertiary);
+    border-bottom: 3px solid var(--accent-primary);
+}
+
+.print-statement-table th {
+    padding: 1.25rem;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.print-statement-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.print-statement-table tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.print-statement-table tbody tr:last-child td {
+    border-bottom: 2px solid var(--accent-primary);
+    font-weight: 600;
+    background: var(--bg-tertiary);
+}
+
+.ledger-debit {
+    color: var(--danger);
+    font-weight: 600;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.ledger-credit {
+    color: var(--success);
+    font-weight: 600;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.ledger-balance {
+    text-align: right;
+    font-weight: 700;
+    color: var(--accent-primary);
+    font-family: 'Courier New', monospace;
+}
+
+.print-summary-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.print-summary-box {
+    padding: 1.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-primary);
+    text-align: center;
+}
+
+.print-summary-box.debit {
+    border-left-color: var(--danger);
+}
+
+.print-summary-box.credit {
+    border-left-color: var(--success);
+}
+
+.print-summary-box.balance {
+    border-left-color: var(--accent-primary);
+}
+
+.print-summary-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.print-summary-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+}
+
+.print-summary-box.debit .print-summary-amount {
+    color: var(--danger);
+}
+
+.print-summary-box.credit .print-summary-amount {
+    color: var(--success);
+}
+
+.print-summary-box.balance .print-summary-amount {
+    color: var(--accent-primary);
+}
+
+.print-footer {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    border-top: 2px solid var(--border-primary);
+    margin-top: 2rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.print-footer-date {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+}
+
+@media print {
+    #printContent {
+        max-width: 100% !important;
+        box-shadow: none !important;
+    }
+    
+    .print-header {
+        break-after: avoid;
+    }
+    
+    .print-statement-table {
+        page-break-inside: avoid;
+    }
+}
+
+/* Delete Button */
+.delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--danger);
+}
+
+.delete-btn:active {
+    transform: scale(0.95);
+}
+
+/* Delete Confirmation Modal */
+.delete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.delete-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.delete-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.delete-modal-content h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.delete-modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.delete-modal-content input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.delete-modal-content input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-actions .btn {
+    padding: 0.65rem 1.5rem;
+    font-size: 0.95rem;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+
+    .header, .sidebar, .section-header, .bank-form-panel,
+    .statement-filters, .statement-actions, .btn, .dark-mode-toggle,
+    #userName, #currentDateTime {
+        display: none !important;
+    }
+
+    .main-container {
+        display: block;
+        margin: 0;
+        padding: 0;
+    }
+
+    .content {
+        margin: 0;
+        padding: 0;
+    }
+
+    #bank-management {
+        display: block !important;
+    }
+
+    .bank-container {
+        display: block;
+        grid-template-columns: none;
+        gap: 0;
+    }
+
+    .bank-form-panel {
+        display: none;
+    }
+
+    .ledger-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ledger-table th, .ledger-table td {
+        border: 1px solid #000;
+        padding: 0.75rem;
+        text-align: left;
+    }
+
+    .ledger-table th {
+        background: #f0f0f0;
+        font-weight: bold;
+    }
+
+    .ledger-table .delete-btn {
+        display: none;
+    }
+
+    .print-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #000;
+        padding-bottom: 1rem;
+    }
+
+    .print-header h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+    }
+
+    .print-header p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+    }
 }

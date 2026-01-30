@@ -94,6 +94,10 @@
                     <i class="fas fa-users"></i>
                     <span>Customers</span>
                 </li>
+                <li class="nav-item" data-section="bank-management">
+                    <i class="fas fa-university"></i>
+                    <span>Bank Management</span>
+                </li>
                 <li class="nav-item" data-section="settings">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
@@ -927,6 +931,23 @@
                                     <i class="fas fa-print"></i> Print Statement
                                 </button>
                             </div>
+                            
+                            <!-- Customer Ledger Summary -->
+                            <div class="customer-ledger-summary" id="customerLedgerSummary" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-primary);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block;">Total Debit (ধার)</span>
+                                    <span id="totalDebit" style="font-size: 1.3rem; font-weight: 700; color: var(--danger); font-family: 'Courier New', monospace;">₹0.00</span>
+                                </div>
+                                <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--success);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block;">Total Credit (জমা)</span>
+                                    <span id="totalCredit" style="font-size: 1.3rem; font-weight: 700; color: var(--success); font-family: 'Courier New', monospace;">₹0.00</span>
+                                </div>
+                                <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-primary);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block;">Net Balance</span>
+                                    <span id="netBalance" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-primary); font-family: 'Courier New', monospace;">₹0.00</span>
+                                </div>
+                            </div>
+
                             <div style="max-height: 600px; overflow-y: auto;">
                                 <table id="ledgerTable">
                                     <thead>
@@ -943,6 +964,110 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="bank-management" class="section">
+                <div class="section-header">
+                    <h1>Bank Management</h1>
+                    <p>Manage bank transactions and maintain ledger records</p>
+                </div>
+                
+                <div class="bank-container">
+                    <!-- Left Panel: Data Entry Form -->
+                    <div class="bank-form-panel">
+                        <h3>Add Transaction</h3>
+                        <div class="bank-form">
+                            <div class="form-group">
+                                <label for="bankDate">Date:</label>
+                                <input type="date" id="bankDate">
+                            </div>
+                            <div class="form-group">
+                                <label for="bankType">Type:</label>
+                                <select id="bankType">
+                                    <option value="deposit">Deposit</option>
+                                    <option value="withdrawal">Withdrawal</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="bankPurpose">Purpose:</label>
+                                <input type="text" id="bankPurpose" placeholder="Enter transaction purpose">
+                            </div>
+                            <div class="form-group">
+                                <label for="bankAmount">Amount:</label>
+                                <input type="number" id="bankAmount" min="0" step="0.01" placeholder="Enter amount">
+                            </div>
+                            <button id="addBankTransaction" class="btn btn-primary">Add Transaction</button>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Statement -->
+                    <div class="bank-statement-panel">
+                        <div class="statement-filters">
+                            <h3>Filter Statement</h3>
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label for="bankFromDate">From Date:</label>
+                                    <input type="date" id="bankFromDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="bankToDate">To Date:</label>
+                                    <input type="date" id="bankToDate">
+                                </div>
+                                <button id="filterBankStatement" class="btn btn-secondary">Filter</button>
+                            </div>
+                        </div>
+
+                        <div class="statement-actions">
+                            <button id="printBankStatement" class="btn btn-success">
+                                <i class="fas fa-print"></i> Print Statement
+                            </button>
+                            <button id="resetBankFilter" class="btn btn-outline">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+
+                        <!-- Statement Summary -->
+                        <div class="bank-summary" id="bankSummary">
+                            <div class="summary-item">
+                                <span class="summary-label">Opening Balance</span>
+                                <span class="summary-value" id="openingBalance">₹0.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Total Deposits</span>
+                                <span class="summary-value deposit" id="totalDeposits">₹0.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Total Withdrawals</span>
+                                <span class="summary-value withdrawal" id="totalWithdrawals">₹0.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Closing Balance</span>
+                                <span class="summary-value balance" id="closingBalance">₹0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Ledger Table -->
+                        <div class="ledger-table-container">
+                            <table class="ledger-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Purpose</th>
+                                        <th>Deposit</th>
+                                        <th>Withdrawal</th>
+                                        <th>Balance</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bankLedgerBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; color: var(--text-secondary);">No transactions yet. Add one to get started.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1002,7 +1127,7 @@
             <!-- Print content will be inserted here -->
         </div>
         <div style="text-align: center; margin-top: 2rem;">
-            <button onclick="window.print()" class="btn btn-primary" style="margin-right: 1rem;">
+            <button onclick="window.print()" class="btn btn-success" style="margin-right: 1rem;">
                 <i class="fas fa-print"></i> Print
             </button>
             <button id="closePrintBtn" class="btn btn-secondary">

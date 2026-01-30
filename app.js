@@ -86,7 +86,7 @@ class ShopManager {
     this.settings = {
       shopName: "One Stop Cyber Cafe",
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
-      shopPhone: "01605681653",
+      shopPhone: "01305681653",
       lowStockThreshold: 10,
       currency: " ",
       darkMode: "light",
@@ -250,7 +250,7 @@ class ShopManager {
     this.settings = {
       shopName: "One Stop Cyber Cafe",
       shopAddress: "Joymontop Bazar, Singair, Manikganj",
-      shopPhone: "01605681653",
+      shopPhone: "01305681653",
       lowStockThreshold: 10,
       currency: " ",
       darkMode: "light",
@@ -697,6 +697,8 @@ class ShopManager {
       this.loadCostManagement()
     } else if (sectionId === "profit-loss") {
       this.generateProfitLossReport()
+    } else if (sectionId === "customers") {
+      this.showCustomerList()
     }
   }
 
@@ -3934,6 +3936,29 @@ ShopManager.prototype.renderLedger = function(customerId) {
   const ledger = this.customerLedgers[customerId] || []
   const tbody = document.getElementById("ledgerTableBody")
   
+  // Calculate summary values
+  let totalDebit = 0
+  let totalCredit = 0
+  
+  ledger.forEach(transaction => {
+    totalDebit += parseFloat(transaction.debit) || 0
+    totalCredit += parseFloat(transaction.credit) || 0
+  })
+  
+  const netBalance = totalDebit - totalCredit
+  
+  // Update summary display
+  const totalDebitEl = document.getElementById("totalDebit")
+  const totalCreditEl = document.getElementById("totalCredit")
+  const netBalanceEl = document.getElementById("netBalance")
+  
+  if (totalDebitEl) totalDebitEl.textContent = formatIndianNumber(totalDebit)
+  if (totalCreditEl) totalCreditEl.textContent = formatIndianNumber(totalCredit)
+  if (netBalanceEl) {
+    netBalanceEl.textContent = formatIndianNumber(Math.abs(netBalance))
+    netBalanceEl.style.color = netBalance > 0 ? 'var(--danger)' : 'var(--success)'
+  }
+  
   if (ledger.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No transactions yet.</td></tr>'
     return
@@ -4106,26 +4131,11 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
   let totalDebit = 0
   let totalCredit = 0
   
-  const ledgerRows = ledger.map((transaction, index) => {
-    runningBalance += parseFloat(transaction.debit) || 0
-    runningBalance -= parseFloat(transaction.credit) || 0
+  // Calculate totals
+  ledger.forEach((transaction) => {
     totalDebit += parseFloat(transaction.debit) || 0
     totalCredit += parseFloat(transaction.credit) || 0
-    
-    const debitDisplay = transaction.debit ? transaction.debit.toFixed(2) : "-"
-    const creditDisplay = transaction.credit ? transaction.credit.toFixed(2) : "-"
-    
-    return `
-      <tr>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: center;">${index + 1}</td>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">${transaction.timestamp}</td>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">${transaction.description}</td>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right;">${debitDisplay}</td>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right;">${creditDisplay}</td>
-        <td style="padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${Math.abs(runningBalance).toFixed(2)}</td>
-      </tr>
-    `
-  }).join("")
+  })
   
   const currentDate = new Date().toLocaleString("en-US", {
     year: "numeric",
@@ -4140,196 +4150,819 @@ ShopManager.prototype.printLedgerStatement = function(customerId) {
   
   const printContent = `
     <style>
-      body {
-        font-family: Arial, sans-serif;
+      * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .statement-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
       }
       .statement-header {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
         text-align: center;
-        margin-bottom: 2rem;
-        border-bottom: 2px solid #333;
-        padding-bottom: 1rem;
+        padding: 2.5rem 2rem;
+        position: relative;
+      }
+      .statement-header .shop-name {
+        color: #1a202c;
+        background: white;
+        padding: 0.75rem 1.5rem;
+        display: inline-block;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+        overflow: hidden;
+      }
+      .statement-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        pointer-events: none;
       }
       .statement-header h1 {
         margin: 0;
-        font-size: 2rem;
-        color: #333;
+        font-size: 2.2rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        position: relative;
+        z-index: 1;
       }
       .statement-header p {
-        margin: 0.5rem 0;
-        color: #666;
+        margin: 0.5rem 0 0 0;
+        color: rgba(255,255,255,0.9);
+        font-size: 0.95rem;
+        position: relative;
+        z-index: 1;
+      }
+      .content-wrapper {
+        padding: 2rem;
       }
       .customer-info {
-        margin-bottom: 1.5rem;
-        padding: 1rem;
-        background-color: #f5f5f5;
-        border-radius: 5px;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f0f7ff 0%, #e0f2ff 100%);
+        border-radius: 10px;
+        border-left: 5px solid #2563eb;
       }
       .customer-info-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0;
       }
       .info-label {
-        font-weight: bold;
-        color: #333;
-        min-width: 150px;
+        font-weight: 600;
+        color: #1e40af;
+        min-width: 140px;
+        font-size: 0.95rem;
       }
       .info-value {
-        color: #666;
+        color: #334155;
+        font-weight: 500;
+        text-align: right;
+        flex: 1;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
       }
       table thead {
-        background-color: #333;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: white;
       }
       table th {
-        padding: 0.75rem;
+        padding: 1rem;
         text-align: left;
-        font-weight: bold;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
       }
       table th:nth-child(4),
       table th:nth-child(5),
       table th:nth-child(6) {
         text-align: right;
       }
+      table tbody tr {
+        border-bottom: 1px solid #e2e8f0;
+      }
+      table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
       table td {
-        padding: 0.75rem;
-        border-bottom: 1px solid #ddd;
+        padding: 0.9rem 1rem;
       }
       table td:nth-child(4),
       table td:nth-child(5),
       table td:nth-child(6) {
         text-align: right;
+        font-family: 'Courier New', monospace;
+      }
+      table td:nth-child(1) {
+        color: #64748b;
+        font-weight: 500;
+        text-align: center;
       }
       .totals-row {
-        background-color: #f0f0f0;
-        font-weight: bold;
+        background: linear-gradient(135deg, #e0f2ff 0%, #f0f7ff 100%);
+        font-weight: 700;
+        border-top: 2px solid #2563eb;
+        border-bottom: 2px solid #2563eb;
+        color: #1e40af;
       }
       .summary-section {
-        margin-top: 2rem;
-        padding: 1rem;
-        background-color: #f9f9f9;
-        border: 2px solid #333;
-        border-radius: 5px;
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafb 0%, #f0f7ff 100%);
+        border: 2px solid #e0f2ff;
+        border-radius: 10px;
+      }
+      .summary-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e40af;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .summary-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 0.75rem;
-        font-size: 1.1rem;
+        align-items: center;
+        margin-bottom: 0.85rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e0f2ff;
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
+      .summary-row span:first-child {
+        font-weight: 600;
+        color: #334155;
+      }
+      .summary-row span:last-child {
+        font-weight: 700;
+        color: #1e40af;
+        font-family: 'Courier New', monospace;
+        font-size: 1.05rem;
       }
       .balance-status {
-        background-color: #ff6b6b;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         color: white;
-        padding: 1rem;
+        padding: 1.5rem;
         text-align: center;
-        font-size: 1.2rem;
-        font-weight: bold;
-        border-radius: 5px;
-        margin-top: 1rem;
+        font-size: 1.3rem;
+        font-weight: 700;
+        border-radius: 10px;
+        margin-top: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
       }
       .balance-status.credit {
-        background-color: #51cf66;
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
       }
       .footer {
         text-align: center;
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 1px solid #ddd;
-        color: #999;
-        font-size: 0.9rem;
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e2e8f0;
+        color: #64748b;
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+      .footer p {
+        margin: 0.3rem 0;
       }
       @media print {
         body {
           margin: 0;
           padding: 0;
+          background: white;
         }
-        #printStatementContainer {
-          padding: 0 !important;
+        .statement-container {
+          box-shadow: none;
         }
       }
     </style>
-    
-    <div class="statement-header">
-      <h1>CUSTOMER LEDGER STATEMENT</h1>
-      <p>One-Stop Cyber Cafe</p>
-      <p>Printed on: ${currentDate}</p>
-    </div>
-    
-    <div class="customer-info">
-      <div class="customer-info-row">
-        <span class="info-label">Customer Name:</span>
-        <span class="info-value">${customer.name}</span>
+    <div style="font-family: Arial, sans-serif; max-width: 850px; margin: 0 auto; padding: 30px 20px; background: white;">
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #1a202c;">One-Stop Cyber Cafe</h2>
+        <p style="margin: 3px 0 0 0; font-size: 12px; color: #333;">${customer.address}</p>
+        <p style="margin: 2px 0; font-size: 12px; color: #333;">Phone: ${customer.phone}</p>
       </div>
-      <div class="customer-info-row">
-        <span class="info-label">Phone Number:</span>
-        <span class="info-value">${customer.phone}</span>
+
+      <!-- Statement Title -->
+      <div style="margin-bottom: 15px;">
+        <h3 style="margin: 0 0 3px 0; font-size: 13px; font-weight: 700; color: #1a202c;">Customer Ledger Statement</h3>
+        <p style="margin: 0; font-size: 11px; color: #666;">Generated on: ${currentDate}</p>
       </div>
-      <div class="customer-info-row">
-        <span class="info-label">Address:</span>
-        <span class="info-value">${customer.address}</span>
+
+      <!-- Customer Info -->
+      <div style="margin-bottom: 20px; padding: 10px 0; border-bottom: 1px solid #ddd;">
+        <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>Customer Name:</strong> ${customer.name}</p>
+        <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>Phone Number:</strong> ${customer.phone}</p>
+        <p style="margin: 0; font-size: 13px;"><strong>Address:</strong> ${customer.address}</p>
       </div>
-    </div>
-    
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 5%;">SL</th>
-          <th style="width: 25%;">Date / Time</th>
-          <th style="width: 30%;">Description</th>
-          <th style="width: 15%;">Debit (ধার)</th>
-          <th style="width: 15%;">Credit (জমা)</th>
-          <th style="width: 10%;">Balance</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${ledgerRows}
-        <tr class="totals-row">
-          <td colspan="3" style="text-align: right;">TOTAL:</td>
-          <td>${totalDebit.toFixed(2)}</td>
-          <td>${totalCredit.toFixed(2)}</td>
-          <td></td>
-        </tr>
-      </tbody>
-    </table>
-    
-    <div class="summary-section">
-      <div class="summary-row">
-        <span>Total Debit (Money Owed):</span>
-        <span>${totalDebit.toFixed(2)}</span>
+
+      <!-- Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+        <thead>
+          <tr style="background: #f0f0f0; border: 1px solid #333;">
+            <th style="padding: 10px 8px; text-align: left; border: 1px solid #333; font-weight: 700; color: #1a202c;">Date</th>
+            <th style="padding: 10px 8px; text-align: left; border: 1px solid #333; font-weight: 700; color: #1a202c;">Purpose</th>
+            <th style="padding: 10px 8px; text-align: right; border: 1px solid #333; font-weight: 700; color: #1a202c;">Debit</th>
+            <th style="padding: 10px 8px; text-align: right; border: 1px solid #333; font-weight: 700; color: #1a202c;">Credit</th>
+            <th style="padding: 10px 8px; text-align: right; border: 1px solid #333; font-weight: 700; color: #1a202c;">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ledger.map((transaction, index) => {
+            runningBalance += parseFloat(transaction.debit) || 0
+            runningBalance -= parseFloat(transaction.credit) || 0
+            const debit = transaction.debit ? transaction.debit.toFixed(2) : ''
+            const credit = transaction.credit ? transaction.credit.toFixed(2) : ''
+            
+            return `
+              <tr style="border: 1px solid #ddd;">
+                <td style="padding: 8px; border: 1px solid #ddd; color: #333;">${transaction.timestamp}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; color: #333;">${transaction.description}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #ddd; color: #dc2626; font-weight: 600;">${debit}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #ddd; color: #16a34a; font-weight: 600;">${credit}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #ddd; font-weight: 600;">${Math.abs(runningBalance).toFixed(2)}</td>
+              </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+
+      <!-- Summary -->
+      <div style="margin-bottom: 20px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;">
+          <span style="font-weight: 700; color: #1a202c;">Total Debit (ধার):</span>
+          <span style="color: #dc2626; font-weight: 600;">${totalDebit.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;">
+          <span style="font-weight: 700; color: #1a202c;">Total Credit (জমা):</span>
+          <span style="color: #16a34a; font-weight: 600;">${totalCredit.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #333; border-bottom: 2px solid #333; margin-top: 8px;">
+          <span style="font-weight: 700; color: #1a202c;">Balance:</span>
+          <span style="font-weight: 700; color: #1a202c;">${(totalDebit - totalCredit).toFixed(2)}</span>
+        </div>
       </div>
-      <div class="summary-row">
-        <span>Total Credit (Payment Received):</span>
-        <span>${totalCredit.toFixed(2)}</span>
+
+      <!-- Footer -->
+      <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px;">
+        <p style="margin: 0;">This is a system-generated statement.</p>
       </div>
-      <div class="summary-row">
-        <span>Final Balance:</span>
-        <span>${finalBalance.toFixed(2)}</span>
-      </div>
-      
-      <div class="balance-status ${balance <= 0 ? 'credit' : ''}">
-        ${balanceStatus}:   ${finalBalance.toFixed(2)}
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>This is a computer-generated statement. No signature required.</p>
-      <p>For inquiries, please contact the cafe management.</p>
     </div>
   `
   
-  document.getElementById("printContent").innerHTML = printContent
-  document.getElementById("printStatementContainer").style.display = "block"
+  const printWindow = window.open("", "_blank", "width=900,height=600")
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Customer Ledger Statement</title>
+    </head>
+    <body style="margin: 20px; padding: 0; font-family: Arial, sans-serif;">
+      ${printContent}
+    </body>
+    </html>
+  `)
+  printWindow.document.close()
   
-  // Scroll to top
-  document.getElementById("printStatementContainer").scrollTop = 0
+  printWindow.onload = () => {
+    printWindow.focus()
+    printWindow.print()
+    printWindow.close()
+  }
 }
+
+// ==================== BANK MANAGEMENT CLASS ====================
+class BankManager {
+  constructor() {
+    this.transactions = []
+    this.filteredTransactions = []
+    this.balance = 0
+    this.deleteModalActive = false
+    this.deleteTransactionIndex = null
+    
+    this.loadTransactions()
+    this.init()
+  }
+
+  init() {
+    this.initializeEventListeners()
+    this.setTodayDate()
+    this.renderLedger()
+  }
+
+  initializeEventListeners() {
+    // Add Transaction
+    const addBtn = document.getElementById('addBankTransaction')
+    if (addBtn) {
+      addBtn.addEventListener('click', () => this.addTransaction())
+    }
+
+    // Filter Statement
+    const filterBtn = document.getElementById('filterBankStatement')
+    if (filterBtn) {
+      filterBtn.addEventListener('click', () => this.filterStatement())
+    }
+
+    // Reset Filter
+    const resetBtn = document.getElementById('resetBankFilter')
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this.resetFilter())
+    }
+
+    // Print Statement
+    const printBtn = document.getElementById('printBankStatement')
+    if (printBtn) {
+      printBtn.addEventListener('click', () => this.printStatement())
+    }
+
+    // Enter key for date, amount fields
+    const dateInput = document.getElementById('bankDate')
+    const amountInput = document.getElementById('bankAmount')
+    
+    if (dateInput) {
+      dateInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') this.addTransaction()
+      })
+    }
+    if (amountInput) {
+      amountInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') this.addTransaction()
+      })
+    }
+  }
+
+  setTodayDate() {
+    const today = new Date().toISOString().split('T')[0]
+    const dateInput = document.getElementById('bankDate')
+    if (dateInput && !dateInput.value) {
+      dateInput.value = today
+    }
+    
+    const fromDate = document.getElementById('bankFromDate')
+    const toDate = document.getElementById('bankToDate')
+    if (fromDate && !fromDate.value) {
+      fromDate.value = today
+    }
+    if (toDate && !toDate.value) {
+      toDate.value = today
+    }
+  }
+
+  addTransaction() {
+    const dateInput = document.getElementById('bankDate')
+    const typeInput = document.getElementById('bankType')
+    const purposeInput = document.getElementById('bankPurpose')
+    const amountInput = document.getElementById('bankAmount')
+
+    if (!dateInput.value || !purposeInput.value.trim() || !amountInput.value) {
+      showToast('Please fill all fields', 'warning')
+      return
+    }
+
+    const date = dateInput.value
+    const type = typeInput.value
+    const purpose = purposeInput.value.trim()
+    const amount = parseFloat(amountInput.value)
+
+    if (amount <= 0) {
+      showToast('Amount must be greater than 0', 'warning')
+      return
+    }
+
+    const transaction = {
+      id: Date.now(),
+      date,
+      type,
+      purpose,
+      amount,
+      timestamp: new Date().toISOString()
+    }
+
+    this.transactions.push(transaction)
+    this.transactions.sort((a, b) => new Date(a.date) - new Date(b.date))
+    this.saveTransactions()
+    this.renderLedger()
+    
+    // Clear form
+    dateInput.value = new Date().toISOString().split('T')[0]
+    typeInput.value = 'deposit'
+    purposeInput.value = ''
+    amountInput.value = ''
+    
+    showToast('Transaction added successfully', 'success')
+  }
+
+  calculateBalance(upToIndex = null) {
+    let balance = 0
+    const transactionsToCalc = upToIndex !== null 
+      ? this.filteredTransactions.slice(0, upToIndex + 1)
+      : this.filteredTransactions
+
+    for (let i = transactionsToCalc.length - 1; i >= 0; i--) {
+      const trans = transactionsToCalc[i]
+      if (trans.type === 'deposit') {
+        balance += trans.amount
+      } else {
+        balance -= trans.amount
+      }
+    }
+    return balance
+  }
+
+  renderLedger() {
+    if (this.filteredTransactions.length === 0) {
+      this.filteredTransactions = [...this.transactions]
+    }
+
+    const tbody = document.getElementById('bankLedgerBody')
+    if (!tbody) return
+
+    // Calculate summary data
+    let openingBalance = 0
+    let totalDeposits = 0
+    let totalWithdrawals = 0
+    let closingBalance = 0
+
+    // Calculate opening balance (before filtered transactions)
+    const filteredDates = this.filteredTransactions.map(t => t.date)
+    const minDate = filteredDates.length ? new Date(Math.min(...filteredDates.map(d => new Date(d)))) : null
+    
+    if (minDate) {
+      const beforeFiltered = this.transactions.filter(t => new Date(t.date) < minDate)
+      beforeFiltered.forEach(t => {
+        if (t.type === 'deposit') {
+          openingBalance += t.amount
+        } else {
+          openingBalance -= t.amount
+        }
+      })
+    }
+
+    closingBalance = openingBalance
+
+    // Calculate totals and closing balance for filtered transactions
+    this.filteredTransactions.forEach(t => {
+      if (t.type === 'deposit') {
+        totalDeposits += t.amount
+        closingBalance += t.amount
+      } else {
+        totalWithdrawals += t.amount
+        closingBalance -= t.amount
+      }
+    })
+
+    // Update summary display
+    const openingEl = document.getElementById('openingBalance')
+    const depositsEl = document.getElementById('totalDeposits')
+    const withdrawalsEl = document.getElementById('totalWithdrawals')
+    const closingEl = document.getElementById('closingBalance')
+
+    if (openingEl) openingEl.textContent = formatIndianNumber(openingBalance)
+    if (depositsEl) depositsEl.textContent = formatIndianNumber(totalDeposits)
+    if (withdrawalsEl) withdrawalsEl.textContent = formatIndianNumber(totalWithdrawals)
+    if (closingEl) closingEl.textContent = formatIndianNumber(closingBalance)
+
+    // Render ledger table
+    if (this.filteredTransactions.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-secondary);">
+            No transactions yet. Add one to get started.
+          </td>
+        </tr>
+      `
+      return
+    }
+
+    tbody.innerHTML = ''
+    let runningBalance = openingBalance
+
+    this.filteredTransactions.forEach((transaction, index) => {
+      if (transaction.type === 'deposit') {
+        runningBalance += transaction.amount
+      } else {
+        runningBalance -= transaction.amount
+      }
+
+      const row = document.createElement('tr')
+      const formattedDate = new Date(transaction.date).toLocaleDateString('en-GB')
+      const depositDisplay = transaction.type === 'deposit' ? formatIndianNumber(transaction.amount) : '-'
+      const withdrawalDisplay = transaction.type === 'withdrawal' ? formatIndianNumber(transaction.amount) : '-'
+      const balanceDisplay = formatIndianNumber(runningBalance)
+
+      row.innerHTML = `
+        <td>${formattedDate}</td>
+        <td>${transaction.purpose}</td>
+        <td class="${transaction.type === 'deposit' ? 'deposit' : ''}">${depositDisplay}</td>
+        <td class="${transaction.type === 'withdrawal' ? 'withdrawal' : ''}">${withdrawalDisplay}</td>
+        <td class="balance">${balanceDisplay}</td>
+        <td>
+          <button class="delete-btn" data-id="${transaction.id}" title="Delete transaction">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      `
+
+      // Delete button event
+      const deleteBtn = row.querySelector('.delete-btn')
+      deleteBtn.addEventListener('click', () => {
+        this.deleteTransactionIndex = this.transactions.findIndex(t => t.id === transaction.id)
+        this.showDeleteConfirmation()
+      })
+
+      tbody.appendChild(row)
+    })
+  }
+
+  filterStatement() {
+    const fromDate = document.getElementById('bankFromDate').value
+    const toDate = document.getElementById('bankToDate').value
+
+    if (!fromDate || !toDate) {
+      showToast('Please select both dates', 'warning')
+      return
+    }
+
+    const from = new Date(fromDate)
+    const to = new Date(toDate)
+
+    if (from > to) {
+      showToast('From date must be before To date', 'warning')
+      return
+    }
+
+    this.filteredTransactions = this.transactions.filter(t => {
+      const transDate = new Date(t.date)
+      return transDate >= from && transDate <= to
+    })
+
+    this.filteredTransactions.sort((a, b) => new Date(a.date) - new Date(b.date))
+
+    this.renderLedger()
+    showToast('Statement filtered successfully', 'success')
+  }
+
+  resetFilter() {
+    this.filteredTransactions = [...this.transactions]
+    this.setTodayDate()
+    this.renderLedger()
+    showToast('Filter reset', 'info')
+  }
+
+  showDeleteConfirmation() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('bankDeleteModal')
+    if (!modal) {
+      modal = document.createElement('div')
+      modal.id = 'bankDeleteModal'
+      modal.className = 'delete-modal'
+      modal.innerHTML = `
+        <div class="delete-modal-content">
+          <h3>Delete Transaction?</h3>
+          <p>This action cannot be undone. Type "CONFIRM" to proceed with deletion.</p>
+          <input type="text" id="bankDeleteConfirmText" placeholder='Type "CONFIRM"'>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="bankDeleteCancel">Cancel</button>
+            <button class="btn btn-danger" id="bankDeleteConfirm">Delete</button>
+          </div>
+        </div>
+      `
+      document.body.appendChild(modal)
+
+      document.getElementById('bankDeleteCancel').addEventListener('click', () => {
+        this.closeDeleteModal()
+      })
+
+      document.getElementById('bankDeleteConfirm').addEventListener('click', () => {
+        this.confirmDelete()
+      })
+
+      document.getElementById('bankDeleteConfirmText').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') this.confirmDelete()
+      })
+    }
+
+    const confirmInput = document.getElementById('bankDeleteConfirmText')
+    confirmInput.value = ''
+    confirmInput.focus()
+
+    modal.classList.add('active')
+    this.deleteModalActive = true
+  }
+
+  closeDeleteModal() {
+    const modal = document.getElementById('bankDeleteModal')
+    if (modal) {
+      modal.classList.remove('active')
+    }
+    this.deleteModalActive = false
+    this.deleteTransactionIndex = null
+  }
+
+  confirmDelete() {
+    const confirmInput = document.getElementById('bankDeleteConfirmText')
+    if (confirmInput.value.toUpperCase() !== 'CONFIRM') {
+      showToast('Please type "CONFIRM" to proceed', 'warning')
+      return
+    }
+
+    if (this.deleteTransactionIndex !== null) {
+      this.transactions.splice(this.deleteTransactionIndex, 1)
+      this.saveTransactions()
+      this.filteredTransactions = [...this.transactions]
+      this.renderLedger()
+      this.closeDeleteModal()
+      showToast('Transaction deleted successfully', 'success')
+    }
+  }
+
+  printStatement() {
+    if (this.filteredTransactions.length === 0) {
+      showToast('No transactions to print', 'warning')
+      return
+    }
+
+    const printWindow = window.open('', '', 'width=800,height=600')
+    const shopInfo = shopManager.settings
+
+    let totalDeposit = 0
+    let totalWithdrawal = 0
+    let runningBalance = 0
+
+    // Calculate starting balance
+    const filteredDates = this.filteredTransactions.map(t => t.date)
+    const minDate = new Date(Math.min(...filteredDates.map(d => new Date(d))))
+    
+    const beforeFiltered = this.transactions.filter(t => new Date(t.date) < minDate)
+    beforeFiltered.forEach(t => {
+      if (t.type === 'deposit') {
+        runningBalance += t.amount
+      } else {
+        runningBalance -= t.amount
+      }
+    })
+
+    const openingBalance = runningBalance
+
+    let tableHTML = ''
+    this.filteredTransactions.forEach((transaction) => {
+      if (transaction.type === 'deposit') {
+        runningBalance += transaction.amount
+        totalDeposit += transaction.amount
+      } else {
+        runningBalance -= transaction.amount
+        totalWithdrawal += transaction.amount
+      }
+
+      const formattedDate = new Date(transaction.date).toLocaleDateString('en-GB')
+      const depositDisplay = transaction.type === 'deposit' ? formatIndianNumber(transaction.amount) : '-'
+      const withdrawalDisplay = transaction.type === 'withdrawal' ? formatIndianNumber(transaction.amount) : '-'
+      const balanceDisplay = formatIndianNumber(runningBalance)
+
+      tableHTML += `
+        <tr>
+          <td style="padding: 0.75rem; text-align: left; border: 1px solid #000;">${formattedDate}</td>
+          <td style="padding: 0.75rem; text-align: left; border: 1px solid #000;">${transaction.purpose}</td>
+          <td style="padding: 0.75rem; text-align: right; border: 1px solid #000; font-family: monospace;">${depositDisplay}</td>
+          <td style="padding: 0.75rem; text-align: right; border: 1px solid #000; font-family: monospace;">${withdrawalDisplay}</td>
+          <td style="padding: 0.75rem; text-align: right; border: 1px solid #000; font-family: monospace; font-weight: bold;">${balanceDisplay}</td>
+        </tr>
+      `
+    })
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Bank Statement</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 2rem; background: white; }
+          .print-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #000; padding-bottom: 1rem; }
+          .print-header h2 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+          .print-header p { margin: 0.25rem 0; font-size: 0.9rem; }
+          .statement-info { margin-bottom: 1.5rem; font-size: 0.9rem; }
+          .statement-info p { margin: 0.25rem 0; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+          th { background: #f0f0f0; padding: 0.75rem; text-align: left; border: 1px solid #000; font-weight: bold; }
+          .summary { margin-top: 2rem; }
+          .summary-row { display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.95rem; }
+          .summary-row strong { min-width: 200px; }
+          .print-footer { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #000; text-align: right; font-size: 0.85rem; }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <h2>${shopInfo.shopName}</h2>
+          <p>${shopInfo.shopAddress}</p>
+          <p>Phone: ${shopInfo.shopPhone}</p>
+        </div>
+        <div class="statement-info">
+          <p><strong>Bank Ledger Statement</strong></p>
+          <p>Generated on: ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB')}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Purpose</th>
+              <th>Deposit</th>
+              <th>Withdrawal</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableHTML}
+          </tbody>
+        </table>
+        <div class="summary">
+          <div class="summary-row">
+            <strong>Opening Balance:</strong>
+            <span>${formatIndianNumber(openingBalance)}</span>
+          </div>
+          <div class="summary-row">
+            <strong>Total Deposits:</strong>
+            <span>${formatIndianNumber(totalDeposit)}</span>
+          </div>
+          <div class="summary-row">
+            <strong>Total Withdrawals:</strong>
+            <span>${formatIndianNumber(totalWithdrawal)}</span>
+          </div>
+          <div class="summary-row" style="border-top: 1px solid #000; padding-top: 0.5rem; font-weight: bold;">
+            <strong>Closing Balance:</strong>
+            <span>${formatIndianNumber(runningBalance)}</span>
+          </div>
+        </div>
+        <div class="print-footer">
+          <p>This is a system-generated statement.</p>
+        </div>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
+  }
+
+  saveTransactions() {
+    localStorage.setItem('bankTransactions', JSON.stringify(this.transactions))
+  }
+
+  loadTransactions() {
+    const stored = localStorage.getItem('bankTransactions')
+    if (stored) {
+      try {
+        this.transactions = JSON.parse(stored)
+      } catch (e) {
+        console.error('Error loading bank transactions:', e)
+        this.transactions = []
+      }
+    }
+    this.filteredTransactions = [...this.transactions]
+  }
+}
+
+// ==================== INITIALIZE BANK MANAGER ====================
 
 const shopManager = new ShopManager()
 shopManager.initCustomerManagement()
+const bankManager = new BankManager()
